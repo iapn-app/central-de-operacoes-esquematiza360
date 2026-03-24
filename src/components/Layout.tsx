@@ -26,12 +26,6 @@ export function Header({ onMenuOpen }: HeaderProps) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const notificationsRef = useRef<HTMLDivElement>(null);
 
-  // Removed setInterval to prevent unnecessary re-renders
-  // React.useEffect(() => {
-  //   const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-  //   return () => clearInterval(timer);
-  // }, []);
-
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
@@ -102,13 +96,22 @@ export function Header({ onMenuOpen }: HeaderProps) {
         >
           <Menu className="w-6 h-6" />
         </button>
-        <div>
+
+        {/* Logo visível apenas no mobile (quando sidebar está fechada) */}
+        <img
+          src="/logo.svg"
+          alt="Esquematiza 360"
+          className="h-8 w-auto lg:hidden"
+        />
+
+        <div className="hidden lg:block">
           <h2 className="text-base lg:text-lg font-bold text-soft-black dark:text-white leading-none mb-1">{getModuleTitle(location.pathname)}</h2>
           <div className="flex items-center gap-2">
             <span className="w-1.5 h-1.5 bg-brand-green rounded-full animate-pulse"></span>
             <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Sessão Segura</span>
           </div>
         </div>
+
         <div className="h-8 w-px bg-gray-100 dark:bg-gray-800 hidden md:block"></div>
         <div className="hidden md:block">
           <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-0.5">Horário Local</p>
