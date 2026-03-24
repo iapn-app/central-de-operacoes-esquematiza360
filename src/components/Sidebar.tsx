@@ -2,9 +2,14 @@ import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   Shield,
-  Settings,
   Users,
+  Settings,
   LogOut,
+  DollarSign,
+  FileText,
+  Map,
+  Truck,
+  ClipboardList,
 } from "lucide-react";
 import logoHorizontal from "../assets/logos/logo-horizontal.png";
 
@@ -12,26 +17,15 @@ export function Sidebar() {
   const location = useLocation();
 
   const menu = [
-    {
-      name: "Visão Geral",
-      icon: LayoutDashboard,
-      path: "/dashboard",
-    },
-    {
-      name: "Centro de Comando",
-      icon: Shield,
-      path: "/centro-comando",
-    },
-    {
-      name: "Clientes",
-      icon: Users,
-      path: "/clientes",
-    },
-    {
-      name: "Configurações",
-      icon: Settings,
-      path: "/configuracoes",
-    },
+    { name: "Visão Geral", icon: LayoutDashboard, path: "/dashboard" },
+    { name: "Centro de Comando", icon: Shield, path: "/centro-comando" },
+    { name: "Financeiro", icon: DollarSign, path: "/financeiro" },
+    { name: "Clientes", icon: Users, path: "/clientes" },
+    { name: "Contratos", icon: FileText, path: "/contratos" },
+    { name: "Mapa de Risco", icon: Map, path: "/mapa-risco" },
+    { name: "Frota", icon: Truck, path: "/frota" },
+    { name: "Escalas", icon: ClipboardList, path: "/escalas" },
+    { name: "Configurações", icon: Settings, path: "/configuracoes" },
   ];
 
   return (
@@ -41,11 +35,11 @@ export function Sidebar() {
           <img
             src={logoHorizontal}
             alt="Esquematiza"
-            className="w-[150px] h-auto object-contain"
+            className="w-[160px] h-auto object-contain"
           />
         </div>
 
-        <nav className="p-4 space-y-2">
+        <nav className="p-4 space-y-2 overflow-y-auto">
           {menu.map((item) => {
             const Icon = item.icon;
             const active = location.pathname === item.path;
