@@ -1,32 +1,32 @@
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import {
-  LayoutDashboard,
-  Shield,
-  Users,
-  Settings,
-  LogOut,
-  DollarSign,
-  FileText,
-  Map,
-  Truck,
-  ClipboardList,
-} from "lucide-react";
+import { LogOut } from "lucide-react";
 import logoHorizontal from "../assets/logos/logo-horizontal.png";
+import { supabase } from "../lib/supabase";
+
+type SidebarItem = {
+  name: string;
+  path: string;
+  icon?: any;
+};
 
 export function Sidebar() {
   const location = useLocation();
+  const [modules, setModules] = useState<SidebarItem[]>([]);
 
-  const menu = [
-    { name: "Visão Geral", icon: LayoutDashboard, path: "/dashboard" },
-    { name: "Centro de Comando", icon: Shield, path: "/centro-comando" },
-    { name: "Financeiro", icon: DollarSign, path: "/financeiro" },
-    { name: "Clientes", icon: Users, path: "/clientes" },
-    { name: "Contratos", icon: FileText, path: "/contratos" },
-    { name: "Mapa de Risco", icon: Map, path: "/mapa-risco" },
-    { name: "Frota", icon: Truck, path: "/frota" },
-    { name: "Escalas", icon: ClipboardList, path: "/escalas" },
-    { name: "Configurações", icon: Settings, path: "/configuracoes" },
-  ];
+  useEffect(() => {
+    async function loadSidebar() {
+      const { data, error } = await supabase.rpc(
+        "get_my_sidebar_modules"
+      );
+
+      if (!error && data) {
+        setModules(data);
+      }
+    }
+
+    loadSidebar();
+  }, []);
 
   return (
     <aside className="fixed left-0 top-0 z-40 w-64 h-screen bg-white border-r border-slate-200 flex flex-col justify-between">
@@ -40,8 +40,7 @@ export function Sidebar() {
         </div>
 
         <nav className="p-4 space-y-2 overflow-y-auto">
-          {menu.map((item) => {
-            const Icon = item.icon;
+          {modules.map((item) => {
             const active = location.pathname === item.path;
 
             return (
@@ -54,7 +53,6 @@ export function Sidebar() {
                     : "text-slate-600 hover:bg-slate-50"
                 }`}
               >
-                <Icon size={18} />
                 <span className="text-sm font-medium">{item.name}</span>
               </Link>
             );
