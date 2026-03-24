@@ -35,13 +35,13 @@ export function Sidebar() {
   ];
 
   return (
-    <aside className="w-64 min-h-screen bg-white border-r border-slate-200 flex flex-col justify-between">
+    <aside className="fixed left-0 top-0 z-40 w-64 h-screen bg-white border-r border-slate-200 flex flex-col justify-between">
       <div>
-        <div className="h-28 border-b border-slate-100 flex items-center px-5">
+        <div className="h-20 border-b border-slate-100 flex items-center px-4">
           <img
             src={logoHorizontal}
             alt="Esquematiza"
-            className="h-16 w-auto object-contain"
+            className="w-[150px] h-auto object-contain"
           />
         </div>
 
