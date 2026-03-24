@@ -1,12 +1,12 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand-green: #059669;
-  --color-brand-green-dark: #047857;
-  --color-brand-green-light: #10b981;
+  --color-brand-green: #333a56;
+  --color-brand-green-dark: #252b42;
+  --color-brand-green-light: #4a557d;
   --color-graphite: #374151;
   --color-soft-black: #111827;
-  
+
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
 }
 
@@ -14,7 +14,7 @@
   body {
     @apply bg-gray-50 dark:bg-[#121212] text-soft-black dark:text-gray-100 antialiased transition-colors duration-300;
   }
-  
+
   .dark {
     --tooltip-bg: #1f2937;
     --tooltip-color: #f3f4f6;
@@ -26,15 +26,15 @@
   .card-premium {
     @apply bg-white dark:bg-[#1e1e1e] rounded-2xl border border-gray-100 dark:border-gray-800 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] dark:shadow-[0_2px_15px_-3px_rgba(0,0,0,0.3)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] dark:hover:shadow-[0_8px_30px_rgba(0,0,0,0.4)] transition-all duration-500;
   }
-  
+
   .btn-primary {
     @apply bg-brand-green hover:bg-brand-green-dark text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-brand-green/20 active:scale-95;
   }
-  
+
   .sidebar-item {
     @apply flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-brand-green/5 hover:text-brand-green transition-all duration-300 font-medium;
   }
-  
+
   .sidebar-item-active {
     @apply bg-brand-green text-white font-bold shadow-lg shadow-brand-green/20;
   }
@@ -42,6 +42,7 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
