@@ -17,14 +17,12 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
 
   return (
     <div className="relative w-full h-screen overflow-hidden bg-black flex items-center justify-center">
-      {/* brilho central */}
       <motion.div
         className="absolute w-[420px] h-[420px] rounded-full bg-emerald-500/10 blur-3xl"
         animate={{ scale: [0.9, 1.1, 0.95], opacity: [0.2, 0.35, 0.2] }}
         transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
       />
 
-      {/* anel externo tipo radar */}
       <motion.div
         className="absolute w-56 h-56 rounded-full border border-emerald-500/15"
         animate={{ scale: [0.8, 1.25], opacity: [0.45, 0] }}
