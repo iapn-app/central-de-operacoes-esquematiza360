@@ -1,39 +1,30 @@
-import { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
-import * as Icons from "lucide-react";
-import { LogOut } from "lucide-react";
+import { useLocation, Link } from "react-router-dom";
+import {
+  LogOut,
+  LayoutDashboard,
+  Shield,
+  DollarSign,
+  Users,
+  Settings,
+} from "lucide-react";
 import logoHorizontal from "../assets/logos/logo-horizontal.png";
-import { supabase } from "../lib/supabase";
 
 type SidebarItem = {
-  id: string;
-  key: string;
   label: string;
   route: string;
-  icon: string;
-  sort_order: number;
+  icon: any;
 };
 
 export function Sidebar() {
   const location = useLocation();
-  const [modules, setModules] = useState<SidebarItem[]>([]);
 
-  useEffect(() => {
-    async function loadSidebar() {
-      const { data, error } = await supabase.rpc("get_my_sidebar_modules");
-
-      if (!error && data) {
-        setModules(data);
-      }
-    }
-
-    loadSidebar();
-  }, []);
-
-  function renderIcon(iconName: string) {
-    const Icon = (Icons as any)[iconName] || Icons.Circle;
-    return <Icon size={18} />;
-  }
+  const modules: SidebarItem[] = [
+    { label: "Dashboard", route: "/dashboard", icon: LayoutDashboard },
+    { label: "Operações", route: "/operacoes", icon: Shield },
+    { label: "Financeiro", route: "/financeiro", icon: DollarSign },
+    { label: "RH", route: "/rh", icon: Users },
+    { label: "Configurações", route: "/configuracoes", icon: Settings },
+  ];
 
   return (
     <aside className="fixed left-0 top-0 z-40 w-64 h-screen bg-white border-r border-slate-200 flex flex-col justify-between">
@@ -49,10 +40,11 @@ export function Sidebar() {
         <nav className="p-4 space-y-2 overflow-y-auto">
           {modules.map((item) => {
             const active = location.pathname === item.route;
+            const Icon = item.icon;
 
             return (
               <Link
-                key={item.id}
+                key={item.route}
                 to={item.route}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl transition ${
                   active
@@ -60,7 +52,7 @@ export function Sidebar() {
                     : "text-slate-600 hover:bg-slate-50"
                 }`}
               >
-                {renderIcon(item.icon)}
+                <Icon size={18} />
                 <span className="text-sm font-medium">{item.label}</span>
               </Link>
             );
