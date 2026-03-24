@@ -1,5 +1,18 @@
 {
+  "functions": {
+    "api/*.ts": {
+      "runtime": "@vercel/node"
+    }
+  },
   "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
+```
+
+Depois faça commit e push:
+```
+git add vercel.json
+git commit -m "fix: vercel config para api routes"
+git push https://SEU_TOKEN@github.com/iapn-app/central-de-operacoes-esquematiza360.git main
