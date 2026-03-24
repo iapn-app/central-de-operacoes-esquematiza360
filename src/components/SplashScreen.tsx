@@ -1,22 +1,25 @@
 import { useEffect } from "react";
-import logoSymbol from "@/assets/logos/logo-symbol.png";
+import logoSymbol from "../assets/logos/logo-symbol.png";
 
-export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
-  
+type SplashScreenProps = {
+  onFinish: () => void;
+};
+
+export function SplashScreen({ onFinish }: SplashScreenProps) {
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const timer = window.setTimeout(() => {
       onFinish();
     }, 2000);
 
-    return () => clearTimeout(timer);
+    return () => window.clearTimeout(timer);
   }, [onFinish]);
 
   return (
-    <div className="w-full h-screen flex items-center justify-center bg-black">
+    <div className="w-full h-screen bg-black flex items-center justify-center">
       <img
         src={logoSymbol}
         alt="Esquematiza"
-        className="w-20 h-20 object-contain"
+        className="w-24 h-24 object-contain opacity-95"
       />
     </div>
   );
