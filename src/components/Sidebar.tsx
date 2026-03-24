@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import * as Icons from "lucide-react";
-import { ChevronRight, LogOut } from "lucide-react";
+import { ChevronRight, LogOut, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import logoHorizontal from "../assets/logos/logo-horizontal.png";
 
 type SidebarItem = {
@@ -65,23 +66,53 @@ const groupedModules: SidebarGroup[] = [
 ];
 
 export function Sidebar() {
+  const [collapsed, setCollapsed] = useState(false);
+
   return (
-    <aside className="fixed left-0 top-0 z-40 w-72 h-screen bg-white border-r border-slate-200 flex flex-col">
-      <div className="h-[74px] px-5 border-b border-slate-100 flex items-center shrink-0">
-        <img
-          src={logoHorizontal}
-          alt="Esquematiza"
-          className="w-[170px] h-auto object-contain"
-        />
+    <aside
+      className={`fixed left-0 top-0 z-40 h-screen bg-white border-r border-slate-200 flex flex-col transition-all duration-300 ${
+        collapsed ? "w-[92px]" : "w-[290px]"
+      }`}
+    >
+      <div
+        className={`border-b border-slate-100 flex items-center shrink-0 ${
+          collapsed ? "h-[74px] px-3 justify-center" : "h-[74px] px-4 justify-between"
+        }`}
+      >
+        {!collapsed ? (
+          <>
+            <img
+              src={logoHorizontal}
+              alt="Esquematiza"
+              className="w-[200px] h-auto object-contain"
+            />
+
+            <button
+              onClick={() => setCollapsed(true)}
+              className="w-9 h-9 rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition"
+            >
+              <PanelLeftClose className="w-4 h-4" />
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={() => setCollapsed(false)}
+            className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 transition"
+          >
+            <PanelLeftOpen className="w-5 h-5" />
+          </button>
+        )}
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-5">
-        <nav className="space-y-7 pb-6">
+      <div className="flex-1 min-h-0 overflow-y-auto px-3 py-4">
+        <nav className="space-y-6 pb-6">
           {groupedModules.map((group) => (
             <div key={group.category} className="space-y-2">
-              <h3 className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">
-                {group.category}
-              </h3>
+              {!collapsed && (
+                <h3 className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">
+                  {group.category}
+                </h3>
+              )}
 
               <div className="space-y-1">
                 {group.items.map((item) => {
@@ -92,7 +123,11 @@ export function Sidebar() {
                       key={item.route}
                       to={item.route}
                       className={({ isActive }) =>
-                        `flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all group ${
+                        `flex items-center rounded-xl text-sm font-medium transition-all group ${
+                          collapsed
+                            ? "justify-center px-2 py-3"
+                            : "justify-between px-3 py-2.5"
+                        } ${
                           isActive
                             ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20"
                             : "text-slate-600 hover:text-emerald-700 hover:bg-emerald-50"
@@ -101,15 +136,22 @@ export function Sidebar() {
                     >
                       {({ isActive }) => (
                         <>
-                          <div className="flex items-center gap-3 min-w-0">
-                            <IconComponent className="w-4 h-4 shrink-0" />
-                            <span className="truncate">{item.label}</span>
-                          </div>
-                          <ChevronRight
-                            className={`w-3.5 h-3.5 shrink-0 transition-opacity ${
-                              isActive ? "opacity-100" : "opacity-0 group-hover:opacity-50"
+                          <div
+                            className={`flex items-center min-w-0 ${
+                              collapsed ? "justify-center" : "gap-3"
                             }`}
-                          />
+                          >
+                            <IconComponent className="w-4 h-4 shrink-0" />
+                            {!collapsed && <span className="truncate">{item.label}</span>}
+                          </div>
+
+                          {!collapsed && (
+                            <ChevronRight
+                              className={`w-3.5 h-3.5 shrink-0 transition-opacity ${
+                                isActive ? "opacity-100" : "opacity-0 group-hover:opacity-50"
+                              }`}
+                            />
+                          )}
                         </>
                       )}
                     </NavLink>
@@ -121,10 +163,14 @@ export function Sidebar() {
         </nav>
       </div>
 
-      <div className="p-4 border-t border-slate-100 bg-slate-50/50 shrink-0">
-        <button className="flex items-center gap-3 px-4 py-3 w-full text-slate-600 hover:text-red-600 transition-all rounded-xl hover:bg-red-50 font-medium text-sm">
-          <LogOut className="w-5 h-5" />
-          <span>Encerrar Sessão</span>
+      <div className="p-3 border-t border-slate-100 bg-slate-50/50 shrink-0">
+        <button
+          className={`flex items-center w-full text-slate-600 hover:text-red-600 transition-all rounded-xl hover:bg-red-50 font-medium text-sm ${
+            collapsed ? "justify-center px-2 py-3" : "gap-3 px-4 py-3"
+          }`}
+        >
+          <LogOut className="w-5 h-5 shrink-0" />
+          {!collapsed && <span>Encerrar Sessão</span>}
         </button>
       </div>
     </aside>
