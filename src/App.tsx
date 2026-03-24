@@ -131,7 +131,6 @@ function GlobalAuthLogger() {
     if (loading) return;
 
     if (!session) {
-      console.log("APP no session");
       if (location.pathname !== "/login") {
         console.log("APP redirect login");
       }
@@ -155,18 +154,15 @@ function LoginRoute() {
   }
 
   if (profile?.role === "financeiro") {
-    console.log("APP redirect financeiro");
     return <Navigate to="/financeiro" replace />;
   }
 
-  console.log("APP redirect dashboard");
   return <Navigate to="/dashboard" replace />;
 }
 
 function AppContent() {
   const { loading, authError } = useAuth();
   const [isPanicOpen, setIsPanicOpen] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const location = useLocation();
 
   if (loading) {
@@ -187,11 +183,17 @@ function AppContent() {
       {!hideShell && (
         <>
           <Sidebar />
-          <Header onMenuClick={() => setIsSidebarOpen(true)} />
+          <Header onMenuClick={() => {}} />
         </>
       )}
 
-      <main className={!hideShell ? "ml-64 pt-20 min-h-screen bg-slate-50" : ""}>
+      <main
+        className={
+          !hideShell
+            ? "ml-[290px] pt-20 min-h-screen bg-slate-50 transition-all duration-300"
+            : ""
+        }
+      >
         <Routes>
           <Route path="/login" element={<LoginRoute />} />
           <Route path="/update-password" element={<UpdatePassword />} />
@@ -212,6 +214,11 @@ function AppContent() {
                 <CentroOperacoes />
               </ProtectedRoute>
             }
+          />
+
+          <Route
+            path="/operacoes"
+            element={<Navigate to="/centro-comando" replace />}
           />
 
           <Route
@@ -273,6 +280,42 @@ function AppContent() {
           />
 
           <Route
+            path="/financeiro/lancamentos"
+            element={
+              <ProtectedRoute>
+                <Financeiro />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/financeiro/receber"
+            element={
+              <ProtectedRoute>
+                <ContasReceber />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/financeiro/pagar"
+            element={
+              <ProtectedRoute>
+                <ContasPagar />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/financeiro/cobranca"
+            element={
+              <ProtectedRoute>
+                <Inadimplencia />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
             path="/escalas"
             element={
               <ProtectedRoute>
@@ -283,6 +326,15 @@ function AppContent() {
 
           <Route
             path="/postos-clientes"
+            element={
+              <ProtectedRoute>
+                <PostosClientes />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/postos"
             element={
               <ProtectedRoute>
                 <PostosClientes />
@@ -373,6 +425,15 @@ function AppContent() {
 
           <Route
             path="/simulador-risco-cliente"
+            element={
+              <ProtectedRoute>
+                <SimuladorRiscoCliente />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/simulador-risco"
             element={
               <ProtectedRoute>
                 <SimuladorRiscoCliente />
@@ -679,7 +740,7 @@ function AppContent() {
           />
 
           <Route path="/" element={<Navigate to="/login" replace />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </main>
 
