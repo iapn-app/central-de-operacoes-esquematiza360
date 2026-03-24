@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import * as Icons from 'lucide-react';
-import { Shield, X, AlertTriangle, ChevronRight, LogOut } from 'lucide-react';
+import { X, AlertTriangle, ChevronRight, LogOut } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useSidebar } from '../hooks/useSidebar';
 
@@ -33,13 +33,11 @@ export function Sidebar({ onLogout, isOpen, onClose }: SidebarProps) {
       )}>
         <div className="p-6 flex items-center justify-between border-b border-gray-50 dark:border-gray-800">
           <div className="flex items-center gap-3">
-            <div className="bg-brand-green p-2 rounded-lg shadow-lg shadow-brand-green/20">
-              <Shield className="text-white w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="font-bold text-soft-black dark:text-white leading-tight tracking-tight text-sm">ESQUEMATIZA</h1>
-              <p className="text-[10px] text-brand-green font-bold uppercase tracking-widest">Central 360°</p>
-            </div>
+            <img
+              src="/logo.svg"
+              alt="Esquematiza 360"
+              className="h-10 w-auto"
+            />
           </div>
           <button onClick={onClose} className="lg:hidden p-2 text-gray-400 dark:text-gray-500 hover:text-brand-green dark:hover:text-brand-green">
             <X className="w-6 h-6" />
