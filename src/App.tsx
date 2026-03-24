@@ -11,7 +11,7 @@ import { Header } from "./components/Layout";
 import { Sidebar } from "./components/Sidebar";
 import { LoginPage } from "./pages/Login";
 import { UpdatePassword } from "./pages/UpdatePassword";
-import { Dashboard } from "./pages/Dashboard";
+import Dashboard from "./pages/Dashboard";
 import { Vigilantes } from "./pages/Vigilantes";
 import { Rondas } from "./pages/Rondas";
 import { Ocorrencias } from "./pages/Ocorrencias";
