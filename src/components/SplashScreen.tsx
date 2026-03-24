@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Shield, Fingerprint, Lock, CheckCircle2 } from 'lucide-react';
+import { Fingerprint, Lock, CheckCircle2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 interface SplashScreenProps {
@@ -140,8 +140,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
             transition={{ duration: 0.9, ease: 'easeOut' }}
           >
             <motion.div
-              className="bg-brand-green w-24 h-24 rounded-3xl flex items-center justify-center mb-8 relative"
-              style={{ boxShadow: '0 0 60px rgba(16,185,129,0.5)' }}
+              className="mb-8 relative flex items-center justify-center"
               initial={{ rotate: -180, opacity: 0, y: 40 }}
               animate={{ rotate: 0, opacity: 1, y: 0 }}
               transition={{ duration: 1, type: 'spring', bounce: 0.4 }}
@@ -150,20 +149,11 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
                 className="absolute inset-0 rounded-3xl border-2 border-emerald-400/30 animate-ping"
                 style={{ animationDuration: '3s' }}
               />
-              <Shield className="text-white w-12 h-12" />
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-            >
-              <h1 className="text-5xl md:text-6xl font-black text-white tracking-tighter mb-2 drop-shadow-2xl">
-                ESQUEMATIZA
-              </h1>
-              <h2 className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-emerald-600 tracking-[0.3em] mb-6">
-                CENTRAL 360
-              </h2>
+              <img
+                src="/logo.svg"
+                alt="Esquematiza 360"
+                className="h-24 w-auto drop-shadow-[0_0_40px_rgba(16,185,129,0.6)]"
+              />
             </motion.div>
 
             <motion.div
