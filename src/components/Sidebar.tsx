@@ -4,79 +4,74 @@ import {
   Shield,
   Settings,
   Users,
-  LogOut
+  LogOut,
 } from "lucide-react";
+import logoHorizontal from "../assets/logos/logo-horizontal.png";
 
-import logoHorizontal from "@/assets/logos/logo-horizontal.png";
-
-export default function Sidebar() {
+export function Sidebar() {
   const location = useLocation();
 
   const menu = [
     {
       name: "Visão Geral",
       icon: LayoutDashboard,
-      path: "/dashboard"
+      path: "/dashboard",
     },
     {
       name: "Centro de Comando",
       icon: Shield,
-      path: "/centro-comando"
+      path: "/centro-comando",
     },
     {
       name: "Clientes",
       icon: Users,
-      path: "/clientes"
+      path: "/clientes",
     },
     {
       name: "Configurações",
       icon: Settings,
-      path: "/configuracoes"
-    }
+      path: "/configuracoes",
+    },
   ];
 
   return (
-    <aside className="w-64 h-screen bg-white border-r flex flex-col justify-between">
-      
-      {/* TOPO */}
+    <aside className="w-64 min-h-screen bg-white border-r border-slate-200 flex flex-col justify-between">
       <div>
-        <div className="flex items-center justify-center h-20 border-b">
+        <div className="h-20 border-b border-slate-100 flex items-center px-5">
           <img
             src={logoHorizontal}
             alt="Esquematiza"
-            className="h-10 object-contain"
+            className="h-8 w-auto object-contain"
           />
         </div>
 
-        {/* MENU */}
         <nav className="p-4 space-y-2">
-          {menu.map((item, index) => {
+          {menu.map((item) => {
             const Icon = item.icon;
             const active = location.pathname === item.path;
 
             return (
               <Link
-                key={index}
+                key={item.path}
                 to={item.path}
-                className={`flex items-center gap-3 px-4 py-2 rounded-lg transition ${
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition ${
                   active
-                    ? "bg-emerald-100 text-emerald-700"
-                    : "text-gray-600 hover:bg-gray-100"
+                    ? "bg-emerald-50 text-emerald-700"
+                    : "text-slate-600 hover:bg-slate-50"
                 }`}
               >
-                <Icon size={20} />
-                <span>{item.name}</span>
+                <Icon size={18} />
+                <span className="text-sm font-medium">{item.name}</span>
               </Link>
             );
           })}
         </nav>
       </div>
 
-      {/* RODAPÉ */}
-      <div className="p-4 border-t">
-        <button className="flex items-center gap-3 text-gray-600 hover:text-red-500">
-          <LogOut size={20} />
-          Sair
+      <div className="p-4 border-t border-slate-100">
+        <button className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:text-red-500 transition">
+          <LogOut size={18} />
+          <span className="text-sm font-medium">Encerrar Sessão</span>
         </button>
       </div>
     </aside>
