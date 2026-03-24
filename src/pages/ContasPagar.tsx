@@ -1,271 +1,313 @@
-import React, { useState } from 'react';
-import { Plus, Search, Filter, AlertCircle, CalendarClock, ShieldCheck, TrendingUp, ChevronDown, CheckCircle2, RefreshCw, MoreVertical } from 'lucide-react';
-import { cn } from '../lib/utils';
-import { motion } from 'motion/react';
+import React, { useState, useEffect } from 'react';
+import {
+  DollarSign, Search, AlertTriangle, Calendar,
+  CheckSquare, Plus, Download, RefreshCw,
+  ChevronRight, X, Building2, Tag, Hash
+} from 'lucide-react';
+import { financeService } from '../../services/financeService';
+import {
+  KpiCard, StatusBadge, ActionButton, SectionCard,
+  PageHeader, Table, Th, Td, Tr
+} from './components/FinanceComponents';
 
-const MOCK_CONTAS_PAGAR = [
-  { id: 1, conta: 'Aluguel Base Operacional', fornecedor: 'Imobiliária Sul', categoria: 'Infraestrutura', valor: 15000, vencimento: 'Hoje', status: 'vence_hoje', risco: 300, acao: 'Pagar Imediatamente', critico: false },
-  { id: 2, conta: 'Link Dedicado (SOC)', fornecedor: 'Vivo Empresas', categoria: 'TI / Telecom', valor: 2500, vencimento: 'Hoje', status: 'vence_hoje', risco: 50, acao: 'Risco de Corte', critico: true },
-  { id: 3, conta: 'Energia Elétrica', fornecedor: 'Enel', categoria: 'Consumo', valor: 4200, vencimento: 'Amanhã', status: 'vence_amanha', risco: 84, acao: 'Agendar Pagamento', critico: true },
-  { id: 4, conta: 'Licença de Rádio', fornecedor: 'Anatel', categoria: 'Impostos/Taxas', valor: 1800, vencimento: 'Amanhã', status: 'vence_amanha', risco: 36, acao: 'Agendar Pagamento', critico: false },
-  { id: 5, conta: 'Seguro Frota (10 VTRs)', fornecedor: 'Porto Seguro', categoria: 'Frota', valor: 8500, vencimento: 'Próx. 7 Dias', status: 'programado', risco: 170, acao: 'Aguardar', critico: false },
-  { id: 6, conta: 'Sistema de CFTV Cloud', fornecedor: 'Intelbras', categoria: 'Tecnologia', valor: 3200, vencimento: 'Próx. 7 Dias', status: 'programado', risco: 64, acao: 'Aguardar', critico: false },
-  { id: 7, conta: 'Telefonia Móvel (Táticos)', fornecedor: 'Claro Empresas', categoria: 'Telecom', valor: 1200, vencimento: 'Próx. 7 Dias', status: 'programado', risco: 24, acao: 'Aguardar', critico: false },
-  { id: 8, conta: 'Software de Monitoramento', fornecedor: 'Sigma', categoria: 'Tecnologia', valor: 5000, vencimento: 'Ontem', status: 'pago', risco: 100, acao: 'Ver Comprovante', critico: false },
-  { id: 9, conta: 'Manutenção Preventiva', fornecedor: 'Oficina Master', categoria: 'Frota', valor: 4500, vencimento: 'Dia 05', status: 'pago', risco: 90, acao: 'Ver Comprovante', critico: false },
-  { id: 10, conta: 'Fornecedor de Uniformes', fornecedor: 'Tática Uniformes', categoria: 'Operacional', valor: 12000, vencimento: 'Dia 02', status: 'pago', risco: 240, acao: 'Ver Comprovante', critico: false },
+// ─── Dados demo ────────────────────────────────────────────────────────────
+
+const mockContas = [
+  { id: 1, fornecedor: 'INSS + FGTS — Março', categoria: 'Encargos', vencimento: '20/03/2026', valor: 48320, status: 'Pendente', prioridade: 'alta' },
+  { id: 2, fornecedor: 'Unifardome — Uniformes lote 03', categoria: 'Material', vencimento: '22/03/2026', valor: 8750, status: 'Pendente', prioridade: 'normal' },
+  { id: 3, fornecedor: 'TecnoSegur — Manutenção radios', categoria: 'Manutenção', vencimento: '25/03/2026', valor: 12400, status: 'Pendente', prioridade: 'normal' },
+  { id: 4, fornecedor: 'Seguro Responsabilidade Civil', categoria: 'Seguro', vencimento: '10/03/2026', valor: 12400, status: 'Vencida', prioridade: 'urgente' },
+  { id: 5, fornecedor: 'Aluguel — Sede administrativa', categoria: 'Infraestrutura', vencimento: '05/04/2026', valor: 18500, status: 'Aprovados', prioridade: 'normal' },
+  { id: 6, fornecedor: 'Simples Nacional — Março', categoria: 'Impostos', vencimento: '31/03/2026', valor: 22180, status: 'Pendente', prioridade: 'alta' },
+  { id: 7, fornecedor: 'AWS — Infraestrutura cloud', categoria: 'Tecnologia', vencimento: '01/04/2026', valor: 1840, status: 'Aprovados', prioridade: 'baixa' },
+  { id: 8, fornecedor: 'Folha de pagamento — Março', categoria: 'Pessoal', vencimento: '30/03/2026', valor: 186400, status: 'Aprovados', prioridade: 'alta' },
 ];
 
-export function ContasPagar() {
-  const [filtroStatus, setFiltroStatus] = useState('todas');
+const categorias = ['Encargos', 'Material', 'Manutenção', 'Seguro', 'Infraestrutura', 'Impostos', 'Tecnologia', 'Pessoal', 'Outros'];
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'vence_hoje':
-        return <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 border border-red-200 animate-pulse">Vence Hoje</span>;
-      case 'vence_amanha':
-        return <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200">Vence Amanhã</span>;
-      case 'programado':
-        return <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-700 border border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700">Programado</span>;
-      case 'pago':
-        return <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-200 flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Pago</span>;
-      case 'vencido':
-        return <span className="px-2.5 py-1 rounded-full text-xs font-black bg-purple-100 text-purple-700 border border-purple-200">Vencido</span>;
-      default:
-        return null;
+const fmt = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+
+// ─── Modal novo pagamento ──────────────────────────────────────────────────
+
+function ModalNovaConta({ onClose }: { onClose: () => void }) {
+  const [form, setForm] = useState({
+    fornecedor: '', categoria: '', vencimento: '', valor: '', descricao: '', recorrente: false
+  });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value, type } = e.target;
+    setForm(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+    }));
+  };
+
+  const inputClass = "w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2.5 rounded-xl text-sm font-medium focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all";
+  const labelClass = "block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5";
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg border border-gray-100 dark:border-gray-800">
+        <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800">
+          <div>
+            <h2 className="text-lg font-black text-gray-900 dark:text-white">Novo Pagamento</h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Cadastre uma nova obrigação financeira</p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors">
+            <X className="w-4 h-4 text-gray-500" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="col-span-2">
+              <label className={labelClass}>Fornecedor / Descrição</label>
+              <input name="fornecedor" value={form.fornecedor} onChange={handleChange} placeholder="Ex: INSS Março 2026" className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Categoria</label>
+              <select name="categoria" value={form.categoria} onChange={handleChange} className={inputClass}>
+                <option value="">Selecionar...</option>
+                {categorias.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={labelClass}>Valor (R$)</label>
+              <input name="valor" value={form.valor} onChange={handleChange} type="number" placeholder="0,00" className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Data de vencimento</label>
+              <input name="vencimento" value={form.vencimento} onChange={handleChange} type="date" className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Centro de custo</label>
+              <select name="centroCusto" className={inputClass}>
+                <option value="">Selecionar...</option>
+                <option>Operacional</option>
+                <option>Administrativo</option>
+                <option>RH</option>
+                <option>Tecnologia</option>
+              </select>
+            </div>
+            <div className="col-span-2">
+              <label className={labelClass}>Observação</label>
+              <textarea name="descricao" rows={2} placeholder="Informações adicionais..." className={inputClass + ' resize-none'} />
+            </div>
+            <div className="col-span-2 flex items-center gap-2">
+              <input type="checkbox" id="recorrente" name="recorrente" checked={form.recorrente} onChange={handleChange} className="w-4 h-4 accent-emerald-600" />
+              <label htmlFor="recorrente" className="text-sm font-medium text-gray-700 dark:text-gray-300">Lançamento recorrente (mensal)</label>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-3 p-6 pt-0">
+          <ActionButton variant="secondary" onClick={onClose}>Cancelar</ActionButton>
+          <ActionButton onClick={onClose}>Salvar pagamento</ActionButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Componente principal ──────────────────────────────────────────────────
+
+export function ContasPagar() {
+  const [payables, setPayables] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'paid'>('pending');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState('2026-03');
+  const [busca, setBusca] = useState('');
+
+  useEffect(() => {
+    async function fetchData() {
+      setLoading(true);
+      try {
+        const statusMap = { pending: 'pending', approved: 'approved', paid: 'paid' };
+        const data = await financeService.getAccountsPayable({ status: statusMap[activeTab] });
+        setPayables(data || []);
+      } catch (error) {
+        console.error('Error fetching payables:', error);
+        setPayables([]);
+      } finally {
+        setLoading(false);
+      }
     }
+    fetchData();
+  }, [activeTab]);
+
+  const tabs = [
+    { id: 'pending', label: 'Aguardando aprovação' },
+    { id: 'approved', label: 'Aprovados' },
+    { id: 'paid', label: 'Pagos' },
+  ] as const;
+
+  const kpis = [
+    { title: 'Vencidas', value: fmt(12400), subtitle: '1 conta em atraso', icon: AlertTriangle, colorClass: 'text-rose-500' },
+    { title: 'Vence esta semana', value: fmt(68320), subtitle: 'INSS + FGTS + seguro', icon: Calendar, colorClass: 'text-amber-500' },
+    { title: 'Vence este mês', value: fmt(290450), subtitle: '6 lançamentos', icon: DollarSign, colorClass: 'text-blue-500' },
+    { title: 'Liquidadas (mar)', value: fmt(186200), subtitle: '3 pagas', icon: CheckSquare, colorClass: 'text-emerald-500' },
+  ];
+
+  // Filtra por aba e busca
+  const tabStatusMap: Record<string, string[]> = {
+    pending: ['Pendente', 'Vencida'],
+    approved: ['Aprovados'],
+    paid: ['Paga'],
+  };
+
+  const contasFiltradas = mockContas.filter(c => {
+    const matchTab = tabStatusMap[activeTab]?.includes(c.status);
+    const matchBusca = busca === '' || c.fornecedor.toLowerCase().includes(busca.toLowerCase()) || c.categoria.toLowerCase().includes(busca.toLowerCase());
+    return matchTab && matchBusca;
+  });
+
+  const totalFiltrado = contasFiltradas.reduce((acc, c) => acc + c.valor, 0);
+
+  const prioridadeConfig: Record<string, string> = {
+    urgente: 'bg-rose-100 text-rose-700 dark:bg-rose-900/20 dark:text-rose-400',
+    alta: 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400',
+    normal: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
+    baixa: 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400',
   };
 
   return (
-    <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Contas a Pagar</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">Gestão de passivos e prevenção de juros.</p>
-        </div>
-        <button className="bg-brand-green hover:bg-emerald-600 text-white px-4 py-2 rounded-xl font-bold text-sm transition-colors flex items-center gap-2 shadow-lg shadow-brand-green/20">
-          <Plus className="w-4 h-4" />
-          Nova Conta / Boleto
-        </button>
-      </div>
+    <div className="space-y-8">
 
-      {/* KPIs */}
+      {/* ── Header ──────────────────────────────────────────────────────── */}
+      <PageHeader
+        title="Contas a Pagar"
+        subtitle="Gestão de obrigações financeiras e agendamento de pagamentos"
+        actions={
+          <>
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white px-4 py-2.5 rounded-xl font-bold outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm"
+            >
+              <option value="2026-03">Março 2026</option>
+              <option value="2026-04">Abril 2026</option>
+            </select>
+            <ActionButton variant="secondary">
+              <Download className="w-4 h-4" /> Exportar
+            </ActionButton>
+            <ActionButton onClick={() => setIsModalOpen(true)}>
+              <Plus className="w-4 h-4" /> Nova conta
+            </ActionButton>
+          </>
+        }
+      />
+
+      {/* ── KPIs ────────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-          <p className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Total a Pagar Hoje</p>
-          <p className="text-2xl font-black text-red-600">R$ 17.500,00</p>
-        </div>
-        <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-          <p className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Total a Pagar (48h)</p>
-          <p className="text-2xl font-black text-amber-600">R$ 23.500,00</p>
-        </div>
-        <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-          <p className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Contas Vencidas</p>
-          <p className="text-2xl font-black text-gray-900 dark:text-white">0</p>
-        </div>
-        <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-          <p className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Total Programado (Mês)</p>
-          <p className="text-2xl font-black text-gray-900 dark:text-white">R$ 145.800,00</p>
-        </div>
+        {kpis.map((kpi, i) => (
+          <KpiCard key={i} title={kpi.title} value={kpi.value} subtitle={kpi.subtitle} icon={kpi.icon} colorClass={kpi.colorClass} />
+        ))}
       </div>
 
-      {/* Main Content Split */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
-        {/* Left Column (70%) */}
-        <div className="lg:col-span-8 space-y-6">
-          
-          {/* Widget 48h */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 border-t-4 border-t-red-500 p-6 flex flex-col h-full">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-red-50 dark:bg-red-500/10 rounded-lg">
-                <CalendarClock className="w-6 h-6 text-red-600 animate-pulse" />
-              </div>
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white">Atenção: Vencimentos Críticos (48h)</h3>
-            </div>
-            
-            <div className="mb-6">
-              <p className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Total em Risco</p>
-              <p className="text-3xl font-black text-gray-900 dark:text-white">
-                R$ 23.500,00
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div className="bg-red-50 dark:bg-red-500/5 rounded-xl p-4 border border-red-100 dark:border-red-500/20">
-                <p className="text-xs font-bold text-red-600 uppercase mb-1">Vence Hoje</p>
-                <p className="text-xl font-bold text-red-700 dark:text-red-500">2 contas</p>
-                <p className="text-sm text-red-600/80 dark:text-red-400 font-medium mt-1">
-                  R$ 17.500,00
-                </p>
-              </div>
-              <div className="bg-amber-50 dark:bg-amber-500/5 rounded-xl p-4 border border-amber-100 dark:border-amber-500/20">
-                <p className="text-xs font-bold text-amber-600 uppercase mb-1">Vence Amanhã</p>
-                <p className="text-xl font-bold text-amber-700 dark:text-amber-500">2 contas</p>
-                <p className="text-sm text-amber-600/80 dark:text-amber-400 font-medium mt-1">
-                  R$ 6.000,00
-                </p>
-              </div>
-            </div>
-
-            <p className="text-sm font-bold text-red-600 dark:text-red-400 mb-4">
-              Risco imediato: R$ 470,00 em multas se não processado.
-            </p>
-
-            <div className="mt-auto flex gap-3">
-              <button className="flex-1 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2">
-                <AlertCircle className="w-4 h-4" />
-                Processar Pagamentos de Hoje
-              </button>
-              <button className="px-6 py-3 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl font-bold text-sm transition-colors">
-                Ver Detalhes
-              </button>
-            </div>
+      {/* ── Alerta vencidas ──────────────────────────────────────────────── */}
+      {activeTab === 'pending' && (
+        <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800/40 rounded-2xl p-4 flex items-center gap-4">
+          <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-black text-rose-800 dark:text-rose-300">1 conta vencida — Seguro Responsabilidade Civil</p>
+            <p className="text-xs text-rose-600 dark:text-rose-400 font-medium">Venceu em 10/03/2026 · R$ 12.400,00 · Risco de multa e juros</p>
           </div>
+          <ActionButton variant="danger" className="text-xs whitespace-nowrap">
+            Regularizar agora <ChevronRight className="w-3 h-3" />
+          </ActionButton>
+        </div>
+      )}
 
-          {/* Table */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
-            <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gray-50/50 dark:bg-gray-900/50">
-              <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-2 sm:pb-0">
-                {['todas', 'vence_hoje', 'vence_amanha', 'programado', 'pago'].map((status) => (
-                  <button
-                    key={status}
-                    onClick={() => setFiltroStatus(status)}
-                    className={cn(
-                      "px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-colors",
-                      filtroStatus === status
-                        ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900"
-                        : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
-                    )}
-                  >
-                    {status.replace('_', ' ').toUpperCase()}
-                  </button>
+      {/* ── Tabela principal ─────────────────────────────────────────────── */}
+      <SectionCard>
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          {/* Tabs */}
+          <div className="flex gap-2 overflow-x-auto pb-1 flex-1">
+            {tabs.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all whitespace-nowrap ${activeTab === tab.id ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-sm' : 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+          {/* Busca */}
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              value={busca}
+              onChange={e => setBusca(e.target.value)}
+              placeholder="Buscar fornecedor..."
+              className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm font-medium focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+            />
+          </div>
+        </div>
+
+        {contasFiltradas.length === 0 ? (
+          <div className="py-16 text-center text-gray-500 dark:text-gray-400 font-medium">
+            Nenhuma conta encontrada para este filtro.
+          </div>
+        ) : (
+          <>
+            <Table>
+              <thead>
+                <tr>
+                  <Th>Fornecedor / Descrição</Th>
+                  <Th>Categoria</Th>
+                  <Th>Vencimento</Th>
+                  <Th>Valor</Th>
+                  <Th>Prioridade</Th>
+                  <Th>Status</Th>
+                  <Th className="text-right">Ação</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {contasFiltradas.map((item) => (
+                  <Tr key={item.id}>
+                    <Td className="font-bold">{item.fornecedor}</Td>
+                    <Td>
+                      <span className="flex items-center gap-1 text-gray-500">
+                        <Tag className="w-3 h-3" /> {item.categoria}
+                      </span>
+                    </Td>
+                    <Td className="font-medium">{item.vencimento}</Td>
+                    <Td className="font-black">{fmt(item.valor)}</Td>
+                    <Td>
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-bold capitalize ${prioridadeConfig[item.prioridade]}`}>
+                        {item.prioridade}
+                      </span>
+                    </Td>
+                    <Td><StatusBadge status={item.status} /></Td>
+                    <Td className="text-right">
+                      <button className={`text-xs font-bold hover:underline ${item.status === 'Vencida' ? 'text-rose-600' : 'text-emerald-600'}`}>
+                        {item.status === 'Vencida' ? 'Urgente' : item.status === 'Aprovados' ? 'Pagar' : 'Aprovar'}
+                      </button>
+                    </Td>
+                  </Tr>
                 ))}
-              </div>
-              <div className="relative">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input 
-                  type="text" 
-                  placeholder="Buscar conta ou fornecedor..." 
-                  className="w-full sm:w-64 pl-9 pr-4 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-green/50 dark:text-white"
-                />
-              </div>
-            </div>
-            
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400">
-                  <tr>
-                    <th className="px-4 py-3 font-bold">Conta</th>
-                    <th className="px-4 py-3 font-bold">Fornecedor</th>
-                    <th className="px-4 py-3 font-bold">Valor</th>
-                    <th className="px-4 py-3 font-bold">Vencimento</th>
-                    <th className="px-4 py-3 font-bold">Status</th>
-                    <th className="px-4 py-3 font-bold">Risco (Multa)</th>
-                    <th className="px-4 py-3 font-bold text-right">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                  {MOCK_CONTAS_PAGAR.filter(c => filtroStatus === 'todas' || c.status === filtroStatus).map((conta) => (
-                    <tr key={conta.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors group">
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-gray-900 dark:text-white">{conta.conta}</span>
-                          {conta.critico && <AlertCircle className="w-4 h-4 text-red-500" />}
-                        </div>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">{conta.categoria}</span>
-                      </td>
-                      <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{conta.fornecedor}</td>
-                      <td className="px-4 py-3 font-bold text-gray-900 dark:text-white">
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(conta.valor)}
-                      </td>
-                      <td className="px-4 py-3 text-gray-600 dark:text-gray-300 font-medium">{conta.vencimento}</td>
-                      <td className="px-4 py-3">{getStatusBadge(conta.status)}</td>
-                      <td className="px-4 py-3">
-                        {conta.status === 'pago' ? (
-                          <span className="text-emerald-600 font-bold text-xs">Evitou R$ {conta.risco.toFixed(2)}</span>
-                        ) : (
-                          <span className="text-red-600 font-bold text-xs">+ R$ {conta.risco.toFixed(2)}</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <button className="p-1.5 text-gray-400 hover:text-brand-green transition-colors rounded-lg hover:bg-brand-green/10">
-                          <MoreVertical className="w-4 h-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
+              </tbody>
+            </Table>
 
-        {/* Right Column (30%) */}
-        <div className="lg:col-span-4 space-y-6">
-          
-          {/* Prejuízo Evitado Card */}
-          <div className="bg-emerald-50 dark:bg-emerald-500/10 rounded-2xl p-6 border border-emerald-100 dark:border-emerald-500/20 relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-4 opacity-10">
-              <ShieldCheck className="w-24 h-24 text-emerald-600" />
+            {/* Subtotal */}
+            <div className="flex justify-end items-center gap-4 mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+              <span className="text-sm font-bold text-gray-500 dark:text-gray-400">
+                {contasFiltradas.length} lançamento{contasFiltradas.length !== 1 ? 's' : ''}
+              </span>
+              <span className="text-base font-black text-gray-900 dark:text-white">
+                Total: {fmt(totalFiltrado)}
+              </span>
             </div>
-            <div className="relative z-10">
-              <div className="flex items-center gap-2 mb-4">
-                <ShieldCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                <h3 className="font-bold text-emerald-900 dark:text-emerald-300">Prejuízo Evitado (Mês)</h3>
-              </div>
-              <p className="text-3xl font-black text-emerald-700 dark:text-emerald-400 mb-2">
-                R$ 4.250,00
-              </p>
-              <div className="flex items-center gap-1 text-sm font-bold text-emerald-600 dark:text-emerald-500 mb-6">
-                <TrendingUp className="w-4 h-4" />
-                <span>15% mais eficiente que o mês passado</span>
-              </div>
-              
-              <div className="space-y-3 mb-6">
-                <div className="flex justify-between text-sm">
-                  <span className="text-emerald-800/70 dark:text-emerald-300/70 font-medium">Impostos</span>
-                  <span className="font-bold text-emerald-900 dark:text-emerald-300">R$ 2.100</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-emerald-800/70 dark:text-emerald-300/70 font-medium">Infraestrutura</span>
-                  <span className="font-bold text-emerald-900 dark:text-emerald-300">R$ 1.500</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-emerald-800/70 dark:text-emerald-300/70 font-medium">Frota</span>
-                  <span className="font-bold text-emerald-900 dark:text-emerald-300">R$ 650</span>
-                </div>
-              </div>
+          </>
+        )}
+      </SectionCard>
 
-              <div className="bg-white/50 dark:bg-gray-900/50 rounded-xl p-3 border border-emerald-200/50 dark:border-emerald-500/20">
-                <p className="text-xs font-bold text-emerald-800 dark:text-emerald-300 text-center">
-                  Dinheiro salvo é margem garantida.
-                </p>
-              </div>
-            </div>
-          </div>
+      {/* ── Modal ───────────────────────────────────────────────────────── */}
+      {isModalOpen && <ModalNovaConta onClose={() => setIsModalOpen(false)} />}
 
-          {/* Alertas Laterais */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
-            <h3 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-amber-500" />
-              Radar de Risco Operacional
-            </h3>
-            <div className="space-y-4">
-              <div className="p-3 bg-red-50 dark:bg-red-500/10 rounded-xl border border-red-100 dark:border-red-500/20">
-                <p className="text-sm font-bold text-red-800 dark:text-red-400 mb-1">Link Dedicado (Vivo)</p>
-                <p className="text-xs text-red-600 dark:text-red-300">Vence hoje. O corte derruba o monitoramento de 45 clientes.</p>
-              </div>
-              <div className="p-3 bg-amber-50 dark:bg-amber-500/10 rounded-xl border border-amber-100 dark:border-amber-500/20">
-                <p className="text-sm font-bold text-amber-800 dark:text-amber-400 mb-1">Energia Elétrica (Enel)</p>
-                <p className="text-xs text-amber-600 dark:text-amber-300">Vence amanhã. Base operacional em risco.</p>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </div>
     </div>
   );
 }
