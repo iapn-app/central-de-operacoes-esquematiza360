@@ -1,13 +1,17 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import * as Icons from "lucide-react";
 import { LogOut } from "lucide-react";
 import logoHorizontal from "../assets/logos/logo-horizontal.png";
 import { supabase } from "../lib/supabase";
 
 type SidebarItem = {
-  name: string;
-  path: string;
-  icon?: any;
+  id: string;
+  key: string;
+  label: string;
+  route: string;
+  icon: string;
+  sort_order: number;
 };
 
 export function Sidebar() {
@@ -16,9 +20,7 @@ export function Sidebar() {
 
   useEffect(() => {
     async function loadSidebar() {
-      const { data, error } = await supabase.rpc(
-        "get_my_sidebar_modules"
-      );
+      const { data, error } = await supabase.rpc("get_my_sidebar_modules");
 
       if (!error && data) {
         setModules(data);
@@ -27,6 +29,11 @@ export function Sidebar() {
 
     loadSidebar();
   }, []);
+
+  function renderIcon(iconName: string) {
+    const Icon = (Icons as any)[iconName] || Icons.Circle;
+    return <Icon size={18} />;
+  }
 
   return (
     <aside className="fixed left-0 top-0 z-40 w-64 h-screen bg-white border-r border-slate-200 flex flex-col justify-between">
@@ -41,19 +48,20 @@ export function Sidebar() {
 
         <nav className="p-4 space-y-2 overflow-y-auto">
           {modules.map((item) => {
-            const active = location.pathname === item.path;
+            const active = location.pathname === item.route;
 
             return (
               <Link
-                key={item.path}
-                to={item.path}
+                key={item.id}
+                to={item.route}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl transition ${
                   active
                     ? "bg-emerald-50 text-emerald-700"
                     : "text-slate-600 hover:bg-slate-50"
                 }`}
               >
-                <span className="text-sm font-medium">{item.name}</span>
+                {renderIcon(item.icon)}
+                <span className="text-sm font-medium">{item.label}</span>
               </Link>
             );
           })}
