@@ -18,9 +18,7 @@ type SidebarGroup = {
 const groupedModules: SidebarGroup[] = [
   {
     category: "VISÃO GERAL",
-    items: [
-      { label: "Dashboard", route: "/dashboard", icon: "LayoutDashboard" },
-    ],
+    items: [{ label: "Dashboard", route: "/dashboard", icon: "LayoutDashboard" }],
   },
   {
     category: "OPERAÇÕES",
@@ -71,25 +69,22 @@ export function Sidebar() {
   return (
     <aside
       className={`fixed left-0 top-0 z-40 h-screen bg-white border-r border-slate-200 flex flex-col transition-all duration-300 ${
-        collapsed ? "w-[92px]" : "w-[290px]"
+        collapsed ? "w-[90px]" : "w-[260px]"
       }`}
     >
-      <div
-        className={`border-b border-slate-100 flex items-center shrink-0 ${
-          collapsed ? "h-[74px] px-3 justify-center" : "h-[74px] px-4 justify-between"
-        }`}
-      >
+      {/* HEADER */}
+      <div className="h-[70px] flex items-center justify-between px-4 border-b border-slate-100">
         {!collapsed ? (
           <>
             <img
               src={logoHorizontal}
               alt="Esquematiza"
-              className="w-[200px] h-auto object-contain"
+              className="w-[180px] object-contain"
             />
 
             <button
               onClick={() => setCollapsed(true)}
-              className="w-9 h-9 rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition"
+              className="w-9 h-9 rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 transition"
             >
               <PanelLeftClose className="w-4 h-4" />
             </button>
@@ -97,80 +92,72 @@ export function Sidebar() {
         ) : (
           <button
             onClick={() => setCollapsed(false)}
-            className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 transition"
+            className="w-10 h-10 mx-auto rounded-xl border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 transition"
           >
             <PanelLeftOpen className="w-5 h-5" />
           </button>
         )}
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto px-3 py-4">
-        <nav className="space-y-6 pb-6">
+      {/* MENU */}
+      <div className="flex-1 overflow-y-auto px-2 py-4">
+        <nav className="space-y-6">
           {groupedModules.map((group) => (
-            <div key={group.category} className="space-y-2">
+            <div key={group.category}>
               {!collapsed && (
-                <h3 className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">
+                <h3 className="px-3 text-[10px] font-bold text-slate-400 uppercase mb-2">
                   {group.category}
                 </h3>
               )}
 
-              <div className="space-y-1">
-                {group.items.map((item) => {
-                  const IconComponent = Icons[item.icon] || Icons.Circle;
+              {group.items.map((item) => {
+                const IconComponent = Icons[item.icon] || Icons.Circle;
 
-                  return (
-                    <NavLink
-                      key={item.route}
-                      to={item.route}
-                      className={({ isActive }) =>
-                        `flex items-center rounded-xl text-sm font-medium transition-all group ${
-                          collapsed
-                            ? "justify-center px-2 py-3"
-                            : "justify-between px-3 py-2.5"
-                        } ${
-                          isActive
-                            ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20"
-                            : "text-slate-600 hover:text-emerald-700 hover:bg-emerald-50"
-                        }`
-                      }
-                    >
-                      {({ isActive }) => (
-                        <>
-                          <div
-                            className={`flex items-center min-w-0 ${
-                              collapsed ? "justify-center" : "gap-3"
-                            }`}
-                          >
-                            <IconComponent className="w-4 h-4 shrink-0" />
-                            {!collapsed && <span className="truncate">{item.label}</span>}
-                          </div>
+                return (
+                  <NavLink
+                    key={item.route}
+                    to={item.route}
+                    className={({ isActive }) =>
+                      `flex items-center rounded-xl text-sm font-medium mb-1 transition ${
+                        collapsed
+                          ? "justify-center py-3"
+                          : "justify-between px-3 py-2.5"
+                      } ${
+                        isActive
+                          ? "bg-[#333a56] text-white"
+                          : "text-slate-600 hover:bg-slate-100"
+                      }`
+                    }
+                  >
+                    {({ isActive }) => (
+                      <>
+                        <div className={`flex items-center ${collapsed ? "" : "gap-3"}`}>
+                          <IconComponent className="w-4 h-4" />
+                          {!collapsed && <span>{item.label}</span>}
+                        </div>
 
-                          {!collapsed && (
-                            <ChevronRight
-                              className={`w-3.5 h-3.5 shrink-0 transition-opacity ${
-                                isActive ? "opacity-100" : "opacity-0 group-hover:opacity-50"
-                              }`}
-                            />
-                          )}
-                        </>
-                      )}
-                    </NavLink>
-                  );
-                })}
-              </div>
+                        {!collapsed && isActive && (
+                          <ChevronRight className="w-4 h-4 opacity-80" />
+                        )}
+                      </>
+                    )}
+                  </NavLink>
+                );
+              })}
             </div>
           ))}
         </nav>
       </div>
 
-      <div className="p-3 border-t border-slate-100 bg-slate-50/50 shrink-0">
+      {/* FOOTER */}
+      <div className="p-3 border-t border-slate-100">
         <button
-          className={`flex items-center w-full text-slate-600 hover:text-red-600 transition-all rounded-xl hover:bg-red-50 font-medium text-sm ${
-            collapsed ? "justify-center px-2 py-3" : "gap-3 px-4 py-3"
+          className={`flex items-center w-full text-slate-600 hover:text-red-600 rounded-xl hover:bg-red-50 text-sm ${
+            collapsed ? "justify-center py-3" : "gap-3 px-3 py-2.5"
           }`}
         >
-          <LogOut className="w-5 h-5 shrink-0" />
-          {!collapsed && <span>Encerrar Sessão</span>}
+          <LogOut className="w-5 h-5" />
+          {!collapsed && <span>Encerrar</span>}
         </button>
       </div>
     </aside>
