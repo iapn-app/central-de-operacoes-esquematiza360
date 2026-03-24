@@ -1,13 +1,19 @@
 import { useState } from "react";
 import logoSymbol from "../assets/logos/logo-symbol.png";
+import { useAuth } from "../hooks/useAuth";
 
 export function LoginPage() {
+  const { signIn, loading, authError } = useAuth();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  function handleLogin(e: React.FormEvent<HTMLFormElement>) {
+  async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    console.log("Login:", { email, password });
+
+    if (!email || !password) return;
+
+    await signIn(email, password);
   }
 
   return (
@@ -57,6 +63,12 @@ export function LoginPage() {
               />
             </div>
 
+            {authError && (
+              <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                {authError}
+              </div>
+            )}
+
             <div className="flex items-center justify-between text-sm">
               <label className="flex items-center gap-2 text-slate-600">
                 <input type="checkbox" className="rounded border-slate-300" />
@@ -73,9 +85,10 @@ export function LoginPage() {
 
             <button
               type="submit"
-              className="w-full h-14 rounded-2xl bg-slate-300 text-white font-bold tracking-wide shadow-[0_8px_20px_rgba(16,185,129,0.18)] hover:bg-emerald-600 transition"
+              disabled={loading}
+              className="w-full h-14 rounded-2xl bg-emerald-600 text-white font-bold tracking-wide shadow-[0_8px_20px_rgba(16,185,129,0.18)] hover:bg-emerald-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              ENTRAR NO SISTEMA →
+              {loading ? "ENTRANDO..." : "ENTRAR NO SISTEMA →"}
             </button>
           </form>
         </div>
