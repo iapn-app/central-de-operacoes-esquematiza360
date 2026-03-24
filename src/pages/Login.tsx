@@ -1,91 +1,88 @@
 import { useState } from "react";
-import logoSymbol from "@/assets/logos/logo-symbol.png";
+import logoSymbol from "../assets/logos/logo-symbol.png";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  function handleLogin(e: React.FormEvent) {
+  function handleLogin(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    console.log("Login:", email, password);
+    console.log("Login:", { email, password });
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      
-      <div className="bg-white p-8 rounded-2xl shadow-md w-full max-w-md">
-        
-        {/* LOGO + TÍTULO */}
-        <div className="flex flex-col items-center mb-6">
+    <div className="min-h-screen bg-[#f4f6f8] flex items-center justify-center px-4">
+      <div className="w-full max-w-md">
+        <div className="flex flex-col items-center mb-8">
           <img
             src={logoSymbol}
             alt="Esquematiza"
             className="w-20 h-20 object-contain mb-4"
           />
 
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-[20px] md:text-[22px] font-extrabold text-slate-900 text-center">
             GRUPO ESQUEMATIZA
           </h1>
 
-          <p className="text-xs tracking-[0.35em] text-emerald-600 mt-1 text-center">
+          <p className="text-[11px] tracking-[0.35em] text-emerald-600 text-center mt-2">
             CENTRAL 360° DE OPERAÇÕES
           </p>
         </div>
 
-        {/* FORM */}
-        <form onSubmit={handleLogin} className="space-y-4">
-          
-          <div>
-            <label className="text-sm text-gray-600">
-              E-mail Corporativo
-            </label>
-            <input
-              type="email"
-              placeholder="seuemail@empresa.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full mt-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            />
-          </div>
+        <div className="bg-white rounded-3xl shadow-[0_10px_30px_rgba(15,23,42,0.08)] border border-slate-100 p-8">
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                E-mail Corporativo
+              </label>
+              <input
+                type="email"
+                placeholder="seuemail@empresa.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full h-14 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+              />
+            </div>
 
-          <div>
-            <label className="text-sm text-gray-600">
-              Senha de Acesso
-            </label>
-            <input
-              type="password"
-              placeholder="••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full mt-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            />
-          </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Senha de Acesso
+              </label>
+              <input
+                type="password"
+                placeholder="••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full h-14 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+              />
+            </div>
 
-          <div className="flex items-center justify-between text-sm">
-            <label className="flex items-center gap-2">
-              <input type="checkbox" />
-              Lembrar acesso
-            </label>
+            <div className="flex items-center justify-between text-sm">
+              <label className="flex items-center gap-2 text-slate-600">
+                <input type="checkbox" className="rounded border-slate-300" />
+                <span>Lembrar acesso</span>
+              </label>
+
+              <button
+                type="button"
+                className="text-emerald-600 font-medium hover:opacity-80 transition"
+              >
+                Esqueceu a senha?
+              </button>
+            </div>
 
             <button
-              type="button"
-              className="text-emerald-600 hover:underline"
+              type="submit"
+              className="w-full h-14 rounded-2xl bg-slate-300 text-white font-bold tracking-wide shadow-[0_8px_20px_rgba(16,185,129,0.18)] hover:bg-emerald-600 transition"
             >
-              Esqueceu a senha?
+              ENTRAR NO SISTEMA →
             </button>
-          </div>
+          </form>
+        </div>
 
-          <button
-            type="submit"
-            className="w-full bg-emerald-600 text-white py-3 rounded-lg font-semibold hover:bg-emerald-700 transition"
-          >
-            ENTRAR NO SISTEMA →
-          </button>
-        </form>
-
-        {/* FOOTER */}
-        <p className="text-center text-xs text-gray-400 mt-6">
-          © 2024 Grupo Esquematiza Segurança Patrimonial
+        <p className="text-center text-xs text-slate-400 mt-8">
+          © 2024 Grupo Esquematiza Segurança Patrimonial. Todos os direitos
+          reservados.
         </p>
       </div>
     </div>
