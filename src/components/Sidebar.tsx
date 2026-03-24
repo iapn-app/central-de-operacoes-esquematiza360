@@ -1,123 +1,84 @@
-import React from 'react';
-import { NavLink } from 'react-router-dom';
-import * as Icons from 'lucide-react';
-import { X, AlertTriangle, ChevronRight, LogOut } from 'lucide-react';
-import { cn } from '../lib/utils';
-import { useSidebar } from '../hooks/useSidebar';
+import { Link, useLocation } from "react-router-dom";
+import {
+  LayoutDashboard,
+  Shield,
+  Settings,
+  Users,
+  LogOut
+} from "lucide-react";
 
-interface SidebarProps {
-  onLogout: () => void;
-  isOpen?: boolean;
-  onClose?: () => void;
-}
+import logoHorizontal from "@/assets/logos/logo-horizontal.png";
 
-export function Sidebar({ onLogout, isOpen, onClose }: SidebarProps) {
-  const { groupedModules, loading } = useSidebar();
+export default function Sidebar() {
+  const location = useLocation();
 
-  const categories = Object.entries(groupedModules);
-  console.log('DEBUG: Rendering categories:', categories);
+  const menu = [
+    {
+      name: "Visão Geral",
+      icon: LayoutDashboard,
+      path: "/dashboard"
+    },
+    {
+      name: "Centro de Comando",
+      icon: Shield,
+      path: "/centro-comando"
+    },
+    {
+      name: "Clientes",
+      icon: Users,
+      path: "/clientes"
+    },
+    {
+      name: "Configurações",
+      icon: Settings,
+      path: "/configuracoes"
+    }
+  ];
 
   return (
-    <>
-      {/* Mobile Overlay */}
-      {isOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden backdrop-blur-sm transition-opacity"
-          onClick={onClose}
-        />
-      )}
-
-      <aside className={cn(
-        "fixed lg:sticky top-0 left-0 z-50 w-72 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col h-screen overflow-hidden transition-transform duration-300 ease-in-out lg:translate-x-0",
-        isOpen ? "translate-x-0" : "-translate-x-full"
-      )}>
-        <div className="p-6 flex items-center justify-between border-b border-gray-50 dark:border-gray-800">
-          <div className="flex items-center gap-3">
-            <img
-              src="/logo.svg"
-              alt="Esquematiza 360"
-              className="h-10 w-auto"
-            />
-          </div>
-          <button onClick={onClose} className="lg:hidden p-2 text-gray-400 dark:text-gray-500 hover:text-brand-green dark:hover:text-brand-green">
-            <X className="w-6 h-6" />
-          </button>
+    <aside className="w-64 h-screen bg-white border-r flex flex-col justify-between">
+      
+      {/* TOPO */}
+      <div>
+        <div className="flex items-center justify-center h-20 border-b">
+          <img
+            src={logoHorizontal}
+            alt="Esquematiza"
+            className="h-10 object-contain"
+          />
         </div>
 
-        <nav className="flex-1 px-4 py-6 space-y-8 overflow-y-auto scrollbar-hide">
-          {loading ? (
-            <div className="flex justify-center items-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-brand-green"></div>
-            </div>
-          ) : categories.length === 0 ? (
-            <div className="text-center p-4">
-              <AlertTriangle className="w-8 h-8 text-yellow-500 mx-auto mb-2" />
-              <p className="text-sm text-gray-500 dark:text-gray-400">Nenhum módulo disponível.</p>
-            </div>
-          ) : (
-            categories.map(([category, items]) => (
-              <div key={category} className="space-y-2">
-                <h3 className="px-4 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">
-                  {category}
-                </h3>
-                <div className="space-y-1">
-                  {items.map((item) => {
-                    // Filter out "Financeiro" item
-                    if (item.label === 'Financeiro') return null;
-                    
-                    // Override routes for Financeiro
-                    let route = item.route;
-                    if (category === 'FINANCEIRO') {
-                      if (item.label === 'Dashboard Financeiro') route = '/financeiro';
-                      else if (item.label === 'Lançamentos') route = '/financeiro/lancamentos';
-                      else if (item.label === 'Contas a Receber') route = '/financeiro/receber';
-                      else if (item.label === 'Contas a Pagar') route = '/financeiro/pagar';
-                      else if (item.label === 'Cobrança') route = '/financeiro/cobranca';
-                      else if (item.label === 'Fluxo de Caixa') route = '/financeiro/fluxo-caixa';
-                      else if (item.label === 'Relatórios') route = '/financeiro/relatorios';
-                    }
+        {/* MENU */}
+        <nav className="p-4 space-y-2">
+          {menu.map((item, index) => {
+            const Icon = item.icon;
+            const active = location.pathname === item.path;
 
-                    const IconComponent = (Icons as any)[item.icon] || Icons.LayoutDashboard;
-                    return (
-                      <NavLink
-                        key={route}
-                        to={route}
-                        onClick={onClose}
-                        className={({ isActive }) => cn(
-                          "flex items-center justify-between px-4 py-2 rounded-xl text-sm font-medium transition-all group",
-                          isActive 
-                            ? "bg-brand-green text-white shadow-md shadow-brand-green/20" 
-                            : "text-gray-500 dark:text-gray-400 hover:text-brand-green dark:hover:text-brand-green hover:bg-brand-green/5 dark:hover:bg-brand-green/10"
-                        )}
-                      >
-                        {({ isActive }) => (
-                          <>
-                            <div className="flex items-center gap-3">
-                              <IconComponent className={cn("w-4 h-4", !isActive && "group-hover:scale-110 transition-transform")} />
-                              <span>{item.label}</span>
-                            </div>
-                            <ChevronRight className={cn("w-3.5 h-3.5 opacity-0 transition-opacity", !isActive && "group-hover:opacity-50")} />
-                          </>
-                        )}
-                      </NavLink>
-                    );
-                  })}
-                </div>
-              </div>
-            ))
-          )}
+            return (
+              <Link
+                key={index}
+                to={item.path}
+                className={`flex items-center gap-3 px-4 py-2 rounded-lg transition ${
+                  active
+                    ? "bg-emerald-100 text-emerald-700"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                <Icon size={20} />
+                <span>{item.name}</span>
+              </Link>
+            );
+          })}
         </nav>
+      </div>
 
-        <div className="p-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50">
-          <button 
-            onClick={onLogout}
-            className="flex items-center gap-3 px-4 py-3 w-full text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-500 transition-all rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10 font-medium text-sm"
-          >
-            <LogOut className="w-5 h-5" />
-            <span>Encerrar Sessão</span>
-          </button>
-        </div>
-      </aside>
-    </>
+      {/* RODAPÉ */}
+      <div className="p-4 border-t">
+        <button className="flex items-center gap-3 text-gray-600 hover:text-red-500">
+          <LogOut size={20} />
+          Sair
+        </button>
+      </div>
+    </aside>
   );
 }
