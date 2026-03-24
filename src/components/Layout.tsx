@@ -2,18 +2,15 @@ import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import * as Icons from 'lucide-react';
-import { 
-  AlertCircle, 
-  CheckCircle2, 
-  AlertTriangle, 
-  Bell, 
-  Menu 
+import {
+  AlertCircle,
+  CheckCircle2,
+  AlertTriangle,
+  Bell,
+  Menu,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../hooks/useAuth';
-import { ThemeToggle } from './ThemeToggle';
-import { Sidebar } from './Sidebar';
 
 interface HeaderProps {
   onMenuOpen: () => void;
@@ -27,13 +24,18 @@ export function Header({ onMenuOpen }: HeaderProps) {
   const notificationsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
         setIsNotificationsOpen(false);
       }
     }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const getModuleTitle = (path: string) => {
@@ -74,6 +76,7 @@ export function Header({ onMenuOpen }: HeaderProps) {
       '/perfis': 'Perfis de Acesso',
       '/configuracoes': 'Configurações do Sistema',
     };
+
     return titles[path] || 'Sistema 360°';
   };
 
@@ -85,53 +88,56 @@ export function Header({ onMenuOpen }: HeaderProps) {
     { id: 5, title: 'Confirmação: Pagamento da Internet registrado com sucesso.', time: 'Há 3 horas', type: 'success', read: true },
   ];
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
-    <header className="h-20 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 px-4 lg:px-8 flex items-center justify-between sticky top-0 z-30 transition-colors">
-      <div className="flex items-center gap-4 lg:gap-8">
-        <button 
+    <header className="h-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 px-4 lg:px-8 flex items-center justify-between sticky top-0 z-30 transition-colors">
+      <div className="flex items-center gap-4 lg:gap-8 min-w-0">
+        <button
           onClick={onMenuOpen}
-          className="lg:hidden p-2 text-gray-500 dark:text-gray-400 hover:text-brand-green dark:hover:text-brand-green hover:bg-brand-green/5 dark:hover:bg-brand-green/10 rounded-lg transition-all"
+          className="lg:hidden p-2 text-gray-500 dark:text-gray-400 hover:text-brand-green hover:bg-brand-green/5 rounded-lg transition-all"
         >
           <Menu className="w-6 h-6" />
         </button>
 
-        {/* Logo visível apenas no mobile (quando sidebar está fechada) */}
-        <img
-          src="/logo.svg"
-          alt="Esquematiza 360"
-          className="h-8 w-auto lg:hidden"
-        />
+        <div className="min-w-0">
+          <h2 className="text-base lg:text-lg font-bold text-soft-black dark:text-white leading-none mb-1 truncate">
+            {getModuleTitle(location.pathname)}
+          </h2>
 
-        <div className="hidden lg:block">
-          <h2 className="text-base lg:text-lg font-bold text-soft-black dark:text-white leading-none mb-1">{getModuleTitle(location.pathname)}</h2>
           <div className="flex items-center gap-2">
             <span className="w-1.5 h-1.5 bg-brand-green rounded-full animate-pulse"></span>
-            <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Sessão Segura</span>
+            <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">
+              Sessão Segura
+            </span>
           </div>
         </div>
 
         <div className="h-8 w-px bg-gray-100 dark:bg-gray-800 hidden md:block"></div>
+
         <div className="hidden md:block">
-          <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-0.5">Horário Local</p>
+          <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-0.5">
+            Horário Local
+          </p>
           <p className="text-xs font-bold text-soft-black dark:text-white">
-            {currentTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            {currentTime.toLocaleTimeString('pt-BR', {
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+            })}
           </p>
         </div>
       </div>
 
-      <div className="flex items-center gap-3 lg:gap-6">
-        <ThemeToggle />
-        
+      <div className="flex items-center gap-3 lg:gap-6 shrink-0">
         <div className="relative" ref={notificationsRef}>
-          <button 
+          <button
             onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
             className={cn(
-              "p-2 lg:p-2.5 rounded-xl transition-all relative",
-              isNotificationsOpen 
-                ? "bg-brand-green/10 text-brand-green dark:bg-brand-green/20" 
-                : "text-gray-400 dark:text-gray-500 hover:text-brand-green dark:hover:text-brand-green hover:bg-brand-green/5 dark:hover:bg-brand-green/10"
+              'p-2 lg:p-2.5 rounded-xl transition-all relative',
+              isNotificationsOpen
+                ? 'bg-brand-green/10 text-brand-green dark:bg-brand-green/20'
+                : 'text-gray-400 dark:text-gray-500 hover:text-brand-green hover:bg-brand-green/5'
             )}
           >
             <Bell className="w-5 h-5" />
@@ -155,26 +161,30 @@ export function Header({ onMenuOpen }: HeaderProps) {
                     {unreadCount} Novas
                   </span>
                 </div>
+
                 <div className="max-h-[320px] overflow-y-auto scrollbar-hide">
                   {notifications.map((notif) => (
-                    <div 
-                      key={notif.id} 
+                    <div
+                      key={notif.id}
                       className={cn(
-                        "p-4 border-b border-gray-50 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer flex gap-3",
-                        !notif.read && "bg-brand-green/5 dark:bg-brand-green/10"
+                        'p-4 border-b border-gray-50 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer flex gap-3',
+                        !notif.read && 'bg-brand-green/5 dark:bg-brand-green/10'
                       )}
                     >
                       <div className="mt-0.5">
                         {notif.type === 'critical' && <AlertCircle className="w-4 h-4 text-red-500" />}
                         {notif.type === 'warning' && <AlertTriangle className="w-4 h-4 text-amber-500" />}
                         {notif.type === 'info' && <Bell className="w-4 h-4 text-blue-500" />}
-                        {notif.type === 'success' && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
+                        {notif.type === 'success' && <CheckCircle2 className="w-4 h-4 text-brand-green" />}
                       </div>
+
                       <div>
-                        <p className={cn(
-                          "text-sm",
-                          !notif.read ? "font-semibold text-gray-900 dark:text-white" : "text-gray-600 dark:text-gray-300"
-                        )}>
+                        <p
+                          className={cn(
+                            'text-sm',
+                            !notif.read ? 'font-semibold text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-300'
+                          )}
+                        >
                           {notif.title}
                         </p>
                         <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{notif.time}</p>
@@ -182,8 +192,9 @@ export function Header({ onMenuOpen }: HeaderProps) {
                     </div>
                   ))}
                 </div>
+
                 <div className="p-3 border-t border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50 text-center">
-                  <button className="text-xs font-bold text-brand-green hover:text-emerald-700 transition-colors">
+                  <button className="text-xs font-bold text-brand-green transition-colors">
                     Marcar todas como lidas
                   </button>
                 </div>
@@ -194,11 +205,26 @@ export function Header({ onMenuOpen }: HeaderProps) {
 
         <div className="flex items-center gap-3 lg:gap-4 pl-3 lg:pl-6 border-l border-gray-100 dark:border-gray-800">
           <div className="text-right hidden sm:block">
-            <p className="text-sm font-bold text-soft-black dark:text-white leading-none mb-1">{profile?.nome || 'Usuário'}</p>
-            <p className="text-[10px] font-bold text-brand-green uppercase tracking-wider">{profile?.role === 'admin_master' ? 'Admin Master' : (profile?.role === 'financeiro' ? 'Financeiro' : 'Usuário')}</p>
+            <p className="text-sm font-bold text-soft-black dark:text-white leading-none mb-1">
+              {profile?.nome || 'Usuário'}
+            </p>
+            <p className="text-[10px] font-bold text-brand-green uppercase tracking-wider">
+              {profile?.role === 'admin_master'
+                ? 'Admin Master'
+                : profile?.role === 'financeiro'
+                ? 'Financeiro'
+                : 'Usuário'}
+            </p>
           </div>
-          <div className="w-9 h-9 lg:w-11 lg:h-11 rounded-xl bg-gradient-to-br from-brand-green to-emerald-600 flex items-center justify-center text-white font-bold shadow-lg shadow-brand-green/20 ring-2 ring-white dark:ring-gray-900 text-sm lg:text-base">
-            {profile?.nome ? profile.nome.split(' ').map(n => n[0]).join('').substring(0, 2) : 'US'}
+
+          <div className="w-9 h-9 lg:w-11 lg:h-11 rounded-xl bg-gradient-to-br from-brand-green to-brand-green-dark flex items-center justify-center text-white font-bold shadow-lg shadow-brand-green/20 ring-2 ring-white dark:ring-gray-900 text-sm lg:text-base">
+            {profile?.nome
+              ? profile.nome
+                  .split(' ')
+                  .map((n) => n[0])
+                  .join('')
+                  .substring(0, 2)
+              : 'US'}
           </div>
         </div>
       </div>
