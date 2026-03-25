@@ -2,9 +2,12 @@ import { useState } from "react";
 import {
   Activity, AlertTriangle, Building2, Car, CheckCircle2,
   Clock3, FileText, Shield, Users, Settings, X, Eye, EyeOff,
+  DollarSign, TrendingUp, Wallet, BarChart3, ChevronRight,
 } from "lucide-react";
 
-const ALL_KPIS = [
+// ─── KPIs Operacionais ─────────────────────────────────────────────────────
+
+const OP_KPIS = [
   { id: "postos",      title: "Postos Ativos",           icon: Building2,    color: "bg-emerald-50", iconColor: "text-emerald-600" },
   { id: "vigilantes",  title: "Vigilantes em Escala",    icon: Users,        color: "bg-blue-50",    iconColor: "text-blue-600" },
   { id: "ocorrencias", title: "Ocorrências Hoje",        icon: AlertTriangle,color: "bg-amber-50",   iconColor: "text-amber-600" },
@@ -15,12 +18,27 @@ const ALL_KPIS = [
   { id: "relatorios",  title: "Relatórios Emitidos",     icon: FileText,     color: "bg-indigo-50",  iconColor: "text-indigo-600" },
 ];
 
-const DEFAULT_VISIBLE = ["postos", "vigilantes", "ocorrencias", "frota", "cobertura", "resposta", "alertas", "relatorios"];
+// ─── KPIs Financeiros ──────────────────────────────────────────────────────
+
+const FIN_KPIS = [
+  { id: "saldo",        title: "Saldo Total",             icon: Wallet,        color: "bg-blue-50",    iconColor: "text-blue-600" },
+  { id: "faturamento",  title: "Faturamento Mensal",      icon: TrendingUp,    color: "bg-emerald-50", iconColor: "text-emerald-600" },
+  { id: "custo",        title: "Custo Operacional",       icon: DollarSign,    color: "bg-rose-50",    iconColor: "text-rose-600" },
+  { id: "lucro",        title: "Lucro Estimado",          icon: BarChart3,     color: "bg-purple-50",  iconColor: "text-purple-600" },
+  { id: "receber",      title: "A Receber (Mês)",         icon: TrendingUp,    color: "bg-teal-50",    iconColor: "text-teal-600" },
+  { id: "atraso",       title: "Em Atraso",               icon: AlertTriangle, color: "bg-amber-50",   iconColor: "text-amber-600" },
+  { id: "pagar",        title: "A Pagar (Mês)",           icon: DollarSign,    color: "bg-orange-50",  iconColor: "text-orange-600" },
+  { id: "inadimplencia",title: "Inadimplência",           icon: AlertTriangle, color: "bg-red-50",     iconColor: "text-red-600" },
+];
+
+const DEFAULT_OP  = OP_KPIS.map(k => k.id);
+const DEFAULT_FIN = FIN_KPIS.map(k => k.id);
 
 // ─── KPI Card compacto ─────────────────────────────────────────────────────
 
-function KpiCard({ title, icon: Icon, color, iconColor }: {
+function KpiCard({ title, icon: Icon, color, iconColor, value = "—", subtitle = "Aguardando dados" }: {
   title: string; icon: React.ElementType; color: string; iconColor: string;
+  value?: string; subtitle?: string;
 }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm flex items-center gap-3">
@@ -29,8 +47,8 @@ function KpiCard({ title, icon: Icon, color, iconColor }: {
       </div>
       <div className="min-w-0">
         <p className="text-xs font-medium text-slate-500 truncate">{title}</p>
-        <h3 className="text-xl font-bold text-slate-900">—</h3>
-        <p className="text-xs text-slate-400 truncate">Aguardando dados</p>
+        <h3 className="text-xl font-bold text-slate-900">{value}</h3>
+        <p className="text-xs text-slate-400 truncate">{subtitle}</p>
       </div>
     </div>
   );
@@ -54,10 +72,11 @@ function StatusItem({ label, value, status = "neutral" }: {
   );
 }
 
-// ─── Painel lateral ────────────────────────────────────────────────────────
+// ─── Painel lateral de personalização ─────────────────────────────────────
 
-function KpiCustomizerPanel({ visible, onToggle, onClose }: {
-  visible: string[]; onToggle: (id: string) => void; onClose: () => void;
+function KpiCustomizerPanel({ kpis, visible, onToggle, onClose, title }: {
+  kpis: typeof OP_KPIS; visible: string[];
+  onToggle: (id: string) => void; onClose: () => void; title: string;
 }) {
   return (
     <>
@@ -65,7 +84,7 @@ function KpiCustomizerPanel({ visible, onToggle, onClose }: {
       <div className="fixed right-0 top-0 h-full w-72 bg-white border-l border-slate-200 shadow-2xl z-50 flex flex-col">
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
           <div>
-            <h2 className="text-sm font-bold text-slate-900">Personalizar Dashboard</h2>
+            <h2 className="text-sm font-bold text-slate-900">Personalizar — {title}</h2>
             <p className="text-xs text-slate-500 mt-0.5">Ative ou desative os KPIs</p>
           </div>
           <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-500 transition">
@@ -73,13 +92,11 @@ function KpiCustomizerPanel({ visible, onToggle, onClose }: {
           </button>
         </div>
         <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1.5">
-          {ALL_KPIS.map((kpi) => {
+          {kpis.map((kpi) => {
             const active = visible.includes(kpi.id);
             const Icon = kpi.icon;
             return (
-              <button
-                key={kpi.id}
-                onClick={() => onToggle(kpi.id)}
+              <button key={kpi.id} onClick={() => onToggle(kpi.id)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition text-left ${
                   active ? "bg-emerald-50 border-emerald-200" : "bg-slate-50 border-slate-200 opacity-60"
                 }`}
@@ -94,141 +111,256 @@ function KpiCustomizerPanel({ visible, onToggle, onClose }: {
           })}
         </div>
         <div className="px-4 py-3 border-t border-slate-100">
-          <p className="text-xs text-slate-400 text-center">{visible.length} de {ALL_KPIS.length} KPIs visíveis</p>
+          <p className="text-xs text-slate-400 text-center">{visible.length} de {kpis.length} KPIs visíveis</p>
         </div>
       </div>
     </>
   );
 }
 
-// ─── Dashboard ─────────────────────────────────────────────────────────────
+// ─── Aba Operações ─────────────────────────────────────────────────────────
 
-export default function Dashboard() {
+function TabOperacoes() {
   const [visibleKpis, setVisibleKpis] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem("dashboard_kpis");
-      return saved ? JSON.parse(saved) : DEFAULT_VISIBLE;
-    } catch { return DEFAULT_VISIBLE; }
+    try { const s = localStorage.getItem("dashboard_op_kpis"); return s ? JSON.parse(s) : DEFAULT_OP; }
+    catch { return DEFAULT_OP; }
   });
   const [showCustomizer, setShowCustomizer] = useState(false);
 
   function toggleKpi(id: string) {
     setVisibleKpis(prev => {
       const next = prev.includes(id) ? prev.filter(k => k !== id) : [...prev, id];
-      localStorage.setItem("dashboard_kpis", JSON.stringify(next));
+      localStorage.setItem("dashboard_op_kpis", JSON.stringify(next));
       return next;
     });
   }
 
-  const visibleCards = ALL_KPIS.filter(k => visibleKpis.includes(k.id));
+  const visibleCards = OP_KPIS.filter(k => visibleKpis.includes(k.id));
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-slate-500">Monitoramento operacional em tempo real.</p>
+        <button onClick={() => setShowCustomizer(true)}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-600 hover:bg-slate-50 transition">
+          <Settings className="w-3.5 h-3.5" /> Personalizar
+        </button>
+      </div>
+
+      {visibleCards.length > 0 ? (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {visibleCards.map(k => <KpiCard key={k.id} {...k} />)}
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
+          <Settings className="w-7 h-7 text-slate-300 mx-auto mb-2" />
+          <p className="text-slate-500 text-sm">Nenhum KPI selecionado.</p>
+          <button onClick={() => setShowCustomizer(true)} className="mt-2 text-sm text-emerald-600 font-semibold hover:underline">Personalizar</button>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <div className="xl:col-span-2 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-bold text-slate-900">Resumo Operacional</h2>
+              <p className="text-xs text-slate-500">Indicadores principais da central</p>
+            </div>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100">
+              <Activity className="h-4 w-4 text-slate-700" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { label: "Cobertura Operacional",  icon: Shield,       color: "bg-emerald-50", iconColor: "text-emerald-600" },
+              { label: "Tempo Médio de Resposta", icon: Clock3,       color: "bg-blue-50",    iconColor: "text-blue-600" },
+              { label: "Alertas Críticos",        icon: AlertTriangle,color: "bg-amber-50",   iconColor: "text-amber-600" },
+              { label: "Relatórios Emitidos",     icon: FileText,     color: "bg-violet-50",  iconColor: "text-violet-600" },
+            ].map(({ label, icon: Icon, color, iconColor }) => (
+              <div key={label} className="rounded-xl border border-slate-200 bg-slate-50 p-4 flex items-center gap-3">
+                <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${color}`}>
+                  <Icon className={`h-4 w-4 ${iconColor}`} />
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-slate-500">{label}</p>
+                  <h3 className="text-xl font-bold text-slate-900">—</h3>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-bold text-slate-900">Status da Operação</h2>
+              <p className="text-xs text-slate-500">Panorama rápido da central</p>
+            </div>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100">
+              <CheckCircle2 className="h-4 w-4 text-slate-700" />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <StatusItem label="Centro de Operações"   value="—" />
+            <StatusItem label="Rondas Programadas"    value="—" />
+            <StatusItem label="Escalas do Dia"        value="—" />
+            <StatusItem label="Ocorrências Pendentes" value="—" />
+            <StatusItem label="Frota"                 value="—" />
+            <StatusItem label="Compliance"            value="—" />
+          </div>
+        </div>
+      </div>
+
+      {showCustomizer && (
+        <KpiCustomizerPanel kpis={OP_KPIS} visible={visibleKpis} onToggle={toggleKpi} onClose={() => setShowCustomizer(false)} title="Operações" />
+      )}
+    </div>
+  );
+}
+
+// ─── Aba Financeiro ────────────────────────────────────────────────────────
+
+function TabFinanceiro() {
+  const [visibleKpis, setVisibleKpis] = useState<string[]>(() => {
+    try { const s = localStorage.getItem("dashboard_fin_kpis"); return s ? JSON.parse(s) : DEFAULT_FIN; }
+    catch { return DEFAULT_FIN; }
+  });
+  const [showCustomizer, setShowCustomizer] = useState(false);
+
+  function toggleKpi(id: string) {
+    setVisibleKpis(prev => {
+      const next = prev.includes(id) ? prev.filter(k => k !== id) : [...prev, id];
+      localStorage.setItem("dashboard_fin_kpis", JSON.stringify(next));
+      return next;
+    });
+  }
+
+  const visibleCards = FIN_KPIS.filter(k => visibleKpis.includes(k.id));
+
+  const fmt = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-slate-500">Visão executiva financeira do Grupo Esquematiza.</p>
+        <button onClick={() => setShowCustomizer(true)}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-600 hover:bg-slate-50 transition">
+          <Settings className="w-3.5 h-3.5" /> Personalizar
+        </button>
+      </div>
+
+      {visibleCards.length > 0 ? (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {visibleCards.map(k => <KpiCard key={k.id} {...k} />)}
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
+          <Settings className="w-7 h-7 text-slate-300 mx-auto mb-2" />
+          <p className="text-slate-500 text-sm">Nenhum KPI selecionado.</p>
+          <button onClick={() => setShowCustomizer(true)} className="mt-2 text-sm text-emerald-600 font-semibold hover:underline">Personalizar</button>
+        </div>
+      )}
+
+      {/* Resumo financeiro */}
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <div className="xl:col-span-2 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-bold text-slate-900">Visão por Empresa</h2>
+              <p className="text-xs text-slate-500">Consolidado do Grupo Esquematiza</p>
+            </div>
+          </div>
+          <div className="space-y-2">
+            {[
+              "ESQMT Serviços de Monitoramento",
+              "ESQMT Vigilância e Segurança",
+              "ESQMT Patrimonial e Eventos",
+              "ESQMT Prevenção de Perdas",
+              "ESQMT Inteligência e Treinamentos",
+            ].map((empresa) => (
+              <div key={empresa} className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5">
+                <span className="text-sm font-medium text-slate-600 truncate">{empresa}</span>
+                <div className="flex items-center gap-3 flex-shrink-0 ml-3">
+                  <span className="text-xs text-slate-400">Aguardando dados</span>
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-4">
+            <h2 className="text-base font-bold text-slate-900">Status Financeiro</h2>
+            <p className="text-xs text-slate-500">Indicadores do mês</p>
+          </div>
+          <div className="space-y-2">
+            <StatusItem label="Faturamento"       value="—" />
+            <StatusItem label="Inadimplência"     value="—" />
+            <StatusItem label="Contas a Pagar"    value="—" />
+            <StatusItem label="Saldo Consolidado" value="—" />
+            <StatusItem label="Margem do Mês"     value="—" />
+            <StatusItem label="NFs Pendentes"     value="—" />
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-dashed border-emerald-200 bg-emerald-50 p-4 text-center">
+        <p className="text-emerald-700 font-semibold text-sm">
+          🚀 Conecte os dados reais para ativar todos os indicadores financeiros consolidados.
+        </p>
+      </div>
+
+      {showCustomizer && (
+        <KpiCustomizerPanel kpis={FIN_KPIS} visible={visibleKpis} onToggle={toggleKpi} onClose={() => setShowCustomizer(false)} title="Financeiro" />
+      )}
+    </div>
+  );
+}
+
+// ─── Dashboard principal ───────────────────────────────────────────────────
+
+export default function Dashboard() {
+  const [activeTab, setActiveTab] = useState<"operacoes" | "financeiro">("operacoes");
 
   return (
     <div className="min-h-[calc(100vh-80px)] bg-slate-50">
       <div className="mx-auto w-full max-w-[1600px] px-6 py-8 lg:px-8">
 
         {/* Header */}
-        <div className="mb-6 flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Dashboard Executivo</h1>
-            <p className="mt-1 text-sm text-slate-500">Inteligência estratégica e monitoramento operacional em tempo real.</p>
-          </div>
+        <div className="mb-6">
+          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Dashboard Executivo</h1>
+          <p className="mt-1 text-sm text-slate-500">Inteligência estratégica e monitoramento em tempo real.</p>
+        </div>
+
+        {/* Abas */}
+        <div className="flex items-center gap-1 mb-6 bg-slate-200/60 p-1 rounded-2xl w-fit">
           <button
-            onClick={() => setShowCustomizer(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition flex-shrink-0"
+            onClick={() => setActiveTab("operacoes")}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+              activeTab === "operacoes"
+                ? "bg-white shadow-sm text-slate-900"
+                : "text-slate-500 hover:text-slate-700"
+            }`}
           >
-            <Settings className="w-4 h-4" /> Personalizar
+            <Shield className="w-4 h-4" /> Operações
+          </button>
+          <button
+            onClick={() => setActiveTab("financeiro")}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+              activeTab === "financeiro"
+                ? "bg-white shadow-sm text-slate-900"
+                : "text-slate-500 hover:text-slate-700"
+            }`}
+          >
+            <DollarSign className="w-4 h-4" /> Financeiro
           </button>
         </div>
 
-        {/* KPI Grid compacto — 4 por linha em telas grandes */}
-        {visibleCards.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-4 gap-3 mb-6">
-            {visibleCards.map((kpi) => (
-              <KpiCard key={kpi.id} title={kpi.title} icon={kpi.icon} color={kpi.color} iconColor={kpi.iconColor} />
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center mb-6">
-            <Settings className="w-7 h-7 text-slate-300 mx-auto mb-2" />
-            <p className="text-slate-500 text-sm font-medium">Nenhum KPI selecionado.</p>
-            <button onClick={() => setShowCustomizer(true)} className="mt-2 text-sm text-emerald-600 font-semibold hover:underline">
-              Clique para personalizar
-            </button>
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-          {/* Resumo Operacional */}
-          <div className="xl:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <h2 className="text-base font-bold text-slate-900">Resumo Operacional</h2>
-                <p className="text-xs text-slate-500">Indicadores principais da central</p>
-              </div>
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100">
-                <Activity className="h-4 w-4 text-slate-700" />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { label: "Cobertura Operacional",  icon: Shield,       color: "bg-emerald-50", iconColor: "text-emerald-600" },
-                { label: "Tempo Médio de Resposta", icon: Clock3,       color: "bg-blue-50",    iconColor: "text-blue-600" },
-                { label: "Alertas Críticos",        icon: AlertTriangle,color: "bg-amber-50",   iconColor: "text-amber-600" },
-                { label: "Relatórios Emitidos",     icon: FileText,     color: "bg-violet-50",  iconColor: "text-violet-600" },
-              ].map(({ label, icon: Icon, color, iconColor }) => (
-                <div key={label} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <div className="flex items-center gap-3">
-                    <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${color}`}>
-                      <Icon className={`h-4 w-4 ${iconColor}`} />
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium text-slate-500">{label}</p>
-                      <h3 className="text-xl font-bold text-slate-900">—</h3>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Status da Operação */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <h2 className="text-base font-bold text-slate-900">Status da Operação</h2>
-                <p className="text-xs text-slate-500">Panorama rápido da central</p>
-              </div>
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100">
-                <CheckCircle2 className="h-4 w-4 text-slate-700" />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <StatusItem label="Centro de Operações"    value="—" />
-              <StatusItem label="Rondas Programadas"     value="—" />
-              <StatusItem label="Escalas do Dia"         value="—" />
-              <StatusItem label="Ocorrências Pendentes"  value="—" />
-              <StatusItem label="Frota"                  value="—" />
-              <StatusItem label="Compliance"             value="—" />
-            </div>
-          </div>
-        </div>
-
-        {/* Aviso implantação */}
-        <div className="mt-6 rounded-2xl border border-dashed border-emerald-200 bg-emerald-50 p-5 text-center">
-          <p className="text-emerald-700 font-semibold text-sm">
-            🚀 Sistema pronto para implantação. Conecte o Supabase para exibir dados reais em tempo real.
-          </p>
-        </div>
+        {/* Conteúdo da aba */}
+        {activeTab === "operacoes" ? <TabOperacoes /> : <TabFinanceiro />}
 
       </div>
-
-      {showCustomizer && (
-        <KpiCustomizerPanel
-          visible={visibleKpis}
-          onToggle={toggleKpi}
-          onClose={() => setShowCustomizer(false)}
-        />
-      )}
     </div>
   );
 }
