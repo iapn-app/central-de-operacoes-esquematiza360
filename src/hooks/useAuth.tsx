@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { UserProfile } from '../types';
@@ -17,92 +17,65 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType>({
-  user: null,
-  session: null,
-  profile: null,
-  loading: true,
-  isAuthenticated: false,
-  isRecoveryMode: false,
-  authError: null,
-  signIn: async () => {},
-  signOut: async () => {},
-  refreshProfile: async () => {},
+  user: null, session: null, profile: null,
+  loading: true, isAuthenticated: false,
+  isRecoveryMode: false, authError: null,
+  signIn: async () => {}, signOut: async () => {}, refreshProfile: async () => {},
 });
+
+async function fetchProfile(): Promise<UserProfile | null> {
+  try {
+    const { data, error } = await supabase.rpc('get_my_profile');
+    if (error) { console.warn('get_my_profile error:', error.message); return null; }
+    if (Array.isArray(data)) return data.length > 0 ? data[0] : null;
+    return data ?? null;
+  } catch (e) { return null; }
+}
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isRecoveryMode, setIsRecoveryMode] = useState(false);
+  const [isRecoveryMode] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
-  const refreshProfile = useCallback(async () => {
-    if (!session?.user?.id) return;
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.rpc('get_my_profile');
-      console.log('PROFILE RAW', data);
+  const refreshProfile = async () => { setProfile(await fetchProfile()); };
 
-      let profileData = null;
-      if (Array.isArray(data)) {
-        profileData = data.length > 0 ? data[0] : null;
-      } else if (data) {
-        profileData = data;
-      }
+  useEffect(() => {
+    let mounted = true;
 
-      if (!profileData) {
-        setProfile(null);
-        setAuthError('Perfil não encontrado.');
-        return;
-      }
+    supabase.auth.getSession().then(async ({ data: { session: s } }) => {
+      if (!mounted) return;
+      if (s) { setSession(s); setUser(s.user); setProfile(await fetchProfile()); }
+      if (mounted) setLoading(false);
+    }).catch(() => { if (mounted) setLoading(false); });
 
-      setProfile(profileData);
-      setAuthError(null);
-    } catch (err) {
-      console.error('AUTH: refreshProfile error:', err);
-      setProfile(null);
-      setAuthError('Erro ao carregar perfil.');
-    } finally {
-      setLoading(false);
-    }
-  }, [session?.user?.id]);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, s) => {
+      if (!mounted) return;
+      if (event === 'SIGNED_OUT') { setSession(null); setUser(null); setProfile(null); setLoading(false); return; }
+      if (s) { setSession(s); setUser(s.user); setProfile(await fetchProfile()); setLoading(false); }
+    });
+
+    return () => { mounted = false; subscription.unsubscribe(); };
+  }, []);
 
   const signIn = async (email: string, password: string) => {
     setLoading(true);
     setAuthError(null);
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-      
-      const currentSession = data.session;
-      setSession(currentSession);
-      setUser(currentSession.user);
-
-      // Fetch profile immediately after sign in
-      const { data: profileDataRaw, error: profileError } = await supabase.rpc('get_my_profile');
-      console.log('PROFILE RAW', profileDataRaw);
-
-      let profileData = null;
-      if (Array.isArray(profileDataRaw)) {
-        profileData = profileDataRaw.length > 0 ? profileDataRaw[0] : null;
-      } else if (profileDataRaw) {
-        profileData = profileDataRaw;
+      if (error) {
+        if (error.message.includes('Invalid login credentials')) throw new Error('E-mail ou senha incorretos.');
+        throw new Error(error.message);
       }
-
-      if (!profileData) {
-        setProfile(null);
-        setAuthError('Perfil não encontrado.');
-        return;
-      }
-
-      setProfile(profileData);
+      setSession(data.session);
+      setUser(data.session.user);
+      setProfile(await fetchProfile());
       setAuthError(null);
     } catch (err: any) {
-      setAuthError(err.message || 'Erro ao autenticar');
-      setSession(null);
-      setUser(null);
-      setProfile(null);
+      setAuthError(err.message || 'Erro ao autenticar.');
+      setSession(null); setUser(null); setProfile(null);
     } finally {
       setLoading(false);
     }
@@ -111,97 +84,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = async () => {
     setLoading(true);
     await supabase.auth.signOut();
-    setSession(null);
-    setUser(null);
-    setProfile(null);
-    setIsRecoveryMode(false);
+    setSession(null); setUser(null); setProfile(null);
     setLoading(false);
   };
 
-  useEffect(() => {
-    async function initializeAuth() {
-      setLoading(true);
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        console.log("SESSION", session);
-
-        if (!session) {
-          setUser(null);
-          setProfile(null);
-          return;
-        }
-
-        setSession(session);
-        setUser(session.user);
-        
-        // Fetch profile
-        const { data, error } = await supabase.rpc('get_my_profile');
-        console.log('PROFILE RAW', data);
-
-        let profileData = null;
-        if (Array.isArray(data)) {
-          profileData = data.length > 0 ? data[0] : null;
-        } else if (data) {
-          profileData = data;
-        }
-
-        if (!profileData) {
-          setProfile(null);
-          setAuthError('Perfil não encontrado.');
-          return;
-        }
-
-        setProfile(profileData);
-        setAuthError(null);
-      } catch (err) {
-        console.error('AUTH: initializeAuth error:', err);
-        setProfile(null);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    initializeAuth();
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('AUTH EVENT:', event);
-      setSession(session);
-      setUser(session?.user ?? null);
-
-      if (event === 'PASSWORD_RECOVERY') {
-        setIsRecoveryMode(true);
-      } else if (event === 'SIGNED_IN') {
-        // Only fetch profile if not already fetching or if session changed
-        if (session) {
-          const { data } = await supabase.rpc('get_my_profile');
-          let profileData = Array.isArray(data) ? data[0] : data;
-          setProfile(profileData);
-        }
-      } else if (event === 'SIGNED_OUT') {
-        setProfile(null);
-        setIsRecoveryMode(false);
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []); // Empty dependency array as requested
-
   return (
-    <AuthContext.Provider value={{ 
-      session, 
-      user, 
-      profile, 
-      loading, 
-      isAuthenticated: !!user, 
-      isRecoveryMode,
-      authError, 
-      signIn, 
-      signOut, 
-      refreshProfile 
-    }}>
+    <AuthContext.Provider value={{ session, user, profile, loading, isAuthenticated: !!user, isRecoveryMode, authError, signIn, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );
