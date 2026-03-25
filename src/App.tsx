@@ -41,12 +41,14 @@ function LoginGuard() {
 }
 
 function App() {
-  const [showSplash, setShowSplash] = useState(
-    () => !sessionStorage.getItem("splashShown")
-  );
+  const [showSplash, setShowSplash] = useState(() => {
+    const last = localStorage.getItem("splashDate");
+    const today = new Date().toDateString();
+    return last !== today;
+  });
 
   function handleSplashFinish() {
-    sessionStorage.setItem("splashShown", "true");
+    localStorage.setItem("splashDate", new Date().toDateString());
     setShowSplash(false);
   }
 
