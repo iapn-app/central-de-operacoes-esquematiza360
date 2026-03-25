@@ -1,8 +1,8 @@
-import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import * as Icons from "lucide-react";
 import { ChevronRight, LogOut, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import logoHorizontal from "../assets/logos/logo-horizontal.png";
+import { useAuth } from "../hooks/useAuth";
 
 type SidebarItem = {
   label: string;
@@ -63,8 +63,13 @@ const groupedModules: SidebarGroup[] = [
   },
 ];
 
-export function Sidebar() {
-  const [collapsed, setCollapsed] = useState(false);
+type SidebarProps = {
+  collapsed: boolean;
+  onToggle: () => void;
+};
+
+export function Sidebar({ collapsed, onToggle }: SidebarProps) {
+  const { signOut } = useAuth();
 
   return (
     <aside
@@ -83,7 +88,7 @@ export function Sidebar() {
             />
 
             <button
-              onClick={() => setCollapsed(true)}
+              onClick={onToggle}
               className="w-9 h-9 rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 transition"
             >
               <PanelLeftClose className="w-4 h-4" />
@@ -91,7 +96,7 @@ export function Sidebar() {
           </>
         ) : (
           <button
-            onClick={() => setCollapsed(false)}
+            onClick={onToggle}
             className="w-10 h-10 mx-auto rounded-xl border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 transition"
           >
             <PanelLeftOpen className="w-5 h-5" />
@@ -152,6 +157,7 @@ export function Sidebar() {
       {/* FOOTER */}
       <div className="p-3 border-t border-slate-100">
         <button
+          onClick={signOut}
           className={`flex items-center w-full text-slate-600 hover:text-red-600 rounded-xl hover:bg-red-50 text-sm ${
             collapsed ? "justify-center py-3" : "gap-3 px-3 py-2.5"
           }`}
