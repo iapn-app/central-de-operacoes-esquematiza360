@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Shield } from 'lucide-react';
@@ -10,8 +10,16 @@ interface ProtectedRouteProps {
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles }) => {
   const { isAuthenticated, profile, loading } = useAuth();
+  const [timedOut, setTimedOut] = useState(false);
 
-  if (loading) {
+  // Se loading durar mais de 4s, força a saída para login
+  useEffect(() => {
+    if (!loading) return;
+    const t = setTimeout(() => setTimedOut(true), 4000);
+    return () => clearTimeout(t);
+  }, [loading]);
+
+  if (loading && !timedOut) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
         <div className="relative flex items-center justify-center mb-6">
