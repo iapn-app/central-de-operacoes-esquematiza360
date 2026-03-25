@@ -211,9 +211,10 @@ export function PainelFinanceiro() {
 
   useEffect(() => {
     let mounted = true;
-    getFinanceKPIs().then(data => {
-      if (mounted) { setKpis(data); setLoading(false); }
-    }).catch(() => { if (mounted) setLoading(false); });
+    getFinanceKPIs()
+      .then(data => { if (mounted) setKpis(data); })
+      .catch(() => {})
+      .finally(() => { if (mounted) setLoading(false); });
     return () => { mounted = false; };
   }, []);
 
