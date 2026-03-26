@@ -33,10 +33,14 @@ export function Cobranca() {
   const [receivables, setReceivables] = useState<any[]>([]);
   const [loading, setLoading]         = useState(true);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    const timeoutId = setTimeout(() => setLoading(false), 8000); // fallback
+    load().finally(() => clearTimeout(timeoutId));
+  }, []);
 
   async function load() {
     setLoading(true);
+    try {
     const data = await financeService.getInadimplencia();
     // Atribui estágio automaticamente baseado nos dias de atraso
     const comStage = (data ?? []).map((r: any) => ({
