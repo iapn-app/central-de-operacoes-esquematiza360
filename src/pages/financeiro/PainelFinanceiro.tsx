@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../../lib/supabase';
+import { financeService } from '../../services/financeService';
 import {
   Shield, TrendingUp, DollarSign, Wallet, AlertTriangle,
   BarChart3, Building2, Zap, Calendar, Settings, X, Eye, EyeOff,
@@ -267,10 +269,38 @@ function SecaoMultiEmpresa() {
 
 export function PainelFinanceiro() {
   const [showCustomizer, setShowCustomizer] = useState(false);
+  const [openLancamento, setOpenLancamento] = useState(false);
+  const [openPeriodo, setOpenPeriodo]       = useState(false);
+  const [periodo, setPeriodo]               = useState('2026-03');
+  const [empresas, setEmpresas]             = useState<any[]>([]);
+  const [contas, setContas]                 = useState<any[]>([]);
+  const [saving, setSaving]                 = useState(false);
+  const [form, setForm] = useState({ descricao:'', valor:'', tipo:'income', categoria:'', vencimento:'', empresa_id:'', conta_id:'' });
   const [visibleKpis, setVisibleKpis] = useState<string[]>(() => {
     try { const saved = localStorage.getItem("financeiro_kpis"); return saved ? JSON.parse(saved) : DEFAULT_FIN_KPIS; }
     catch { return DEFAULT_FIN_KPIS; }
   });
+
+  useEffect(() => {
+    supabase.from('empresas').select('id, nome').order('nome').then(({ data }) => setEmpresas(data ?? []));
+  }, []);
+
+  useEffect(() => {
+    if (!form.empresa_id) { setContas([]); return; }
+    supabase.from('contas_bancarias').select('id, banco_nome, agencia, conta')
+      .eq('empresa_id', form.empresa_id)
+      .then(({ data }) => setContas(data ?? []));
+  }, [form.empresa_id]);
+
+  async function salvarLancamento() {
+    if (!form.descricao || !form.valor || !form.empresa_id || !form.conta_id) return;
+    setSaving(true);
+    try {
+      await financeService.createFinancialEntry(form);
+      setOpenLancamento(false);
+      setForm({ descricao:'', valor:'', tipo:'income', categoria:'', vencimento:'', empresa_id:'', conta_id:'' });
+    } finally { setSaving(false); }
+  }
 
   function toggleKpi(id: string) {
     setVisibleKpis(prev => {
@@ -301,12 +331,29 @@ export function PainelFinanceiro() {
         subtitle="Controle completo de receitas, custos operacionais e obrigações — Grupo Esquematiza (5 empresas)."
         actions={
           <>
-            <ActionButton variant="secondary"><Calendar className="w-4 h-4" />Março 2026</ActionButton>
+            <div className="relative">
+              <ActionButton variant="secondary" onClick={() => setOpenPeriodo(!openPeriodo)}>
+                <Calendar className="w-4 h-4" />
+                {['2026-01','2026-02','2026-03','2026-04','2026-05','2026-06'].find(m => m === periodo)
+                  ? new Date(periodo+'-15').toLocaleDateString('pt-BR',{month:'long',year:'numeric'})
+                  : 'Março 2026'}
+              </ActionButton>
+              {openPeriodo && (
+                <div className="absolute top-full mt-2 right-0 bg-white border border-gray-100 rounded-xl shadow-lg z-50 min-w-[160px] overflow-hidden">
+                  {['2026-01','2026-02','2026-03','2026-04','2026-05','2026-06'].map(m => (
+                    <button key={m} onClick={() => { setPeriodo(m); setOpenPeriodo(false); }}
+                      className={"w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition " + (periodo===m ? "font-bold text-emerald-700 bg-emerald-50" : "text-gray-700")}>
+                      {new Date(m+'-15').toLocaleDateString('pt-BR',{month:'long',year:'numeric'})}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <button onClick={() => setShowCustomizer(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition">
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 active:scale-95 transition">
               <Settings className="w-4 h-4" /> Personalizar KPIs
             </button>
-            <ActionButton>+ Novo Lançamento</ActionButton>
+            <ActionButton onClick={() => setOpenLancamento(true)}>+ Novo Lançamento</ActionButton>
           </>
         }
       />
@@ -374,6 +421,54 @@ export function PainelFinanceiro() {
       </div>
 
       {showCustomizer && <KpiCustomizerPanel visible={visibleKpis} onToggle={toggleKpi} onClose={() => setShowCustomizer(false)} />}
+
+      {openLancamento && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
+          <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-100 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold mb-6 text-gray-900 tracking-tight">Novo Lançamento</h2>
+            <div className="space-y-4">
+              <input type="text" placeholder="Descrição *"
+                className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                value={form.descricao} onChange={e => setForm({...form, descricao: e.target.value})} />
+              <input type="number" placeholder="Valor (R$) *" min="0" step="0.01"
+                className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                value={form.valor} onChange={e => setForm({...form, valor: e.target.value})} />
+              <select className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                value={form.tipo} onChange={e => setForm({...form, tipo: e.target.value})}>
+                <option value="income">Entrada (Receita)</option>
+                <option value="expense">Saída (Despesa)</option>
+              </select>
+              <select className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                value={form.categoria} onChange={e => setForm({...form, categoria: e.target.value})}>
+                <option value="">Selecione categoria</option>
+                {['Serviço Prestado','Recebimento de Cliente','Folha de Pagamento','Encargos (INSS/FGTS)','Fornecedores','Impostos','Frota','Aluguel','TI','Outros'].map(cat =>
+                  <option key={cat} value={cat}>{cat}</option>)}
+              </select>
+              <select className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                value={form.empresa_id} onChange={e => setForm({...form, empresa_id: e.target.value, conta_id: ''})}>
+                <option value="">Empresa *</option>
+                {empresas.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
+              </select>
+              <select className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                value={form.conta_id} disabled={!form.empresa_id} onChange={e => setForm({...form, conta_id: e.target.value})}>
+                <option value="">Conta bancária *</option>
+                {contas.map(c => <option key={c.id} value={c.id}>{c.banco_nome} Ag {c.agencia} — {c.conta}</option>)}
+              </select>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Vencimento</label>
+                <input type="date" className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                  value={form.vencimento} onChange={e => setForm({...form, vencimento: e.target.value})} />
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 mt-8">
+              <ActionButton variant="secondary" onClick={() => setOpenLancamento(false)}>Cancelar</ActionButton>
+              <ActionButton onClick={salvarLancamento} disabled={saving || !form.descricao || !form.valor || !form.empresa_id || !form.conta_id}>
+                {saving ? 'Salvando...' : 'Salvar Lançamento'}
+              </ActionButton>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
