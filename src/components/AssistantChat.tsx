@@ -14,62 +14,65 @@ const fmt = (v: number) =>
 
 // ─── Busca dados reais do Supabase ─────────────────────────────────────────
 
+// Wrapper com timeout para evitar Promise travada por RLS ou rede
+function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>(resolve => setTimeout(() => resolve(fallback), ms)),
+  ]);
+}
+
 async function fetchFinanceContext() {
   try {
     const hoje = new Date().toISOString().split('T')[0];
     const mesInicio = hoje.slice(0, 7) + '-01';
 
+    const empty = { data: [], error: null };
+
+    // Cada query tem timeout de 4s — se RLS bloquear, retorna [] e não trava
     const [pagar, receber, inadimplentes, lancamentos] = await Promise.all([
-      // Contas a pagar pendentes
-      supabase
-        .from('lancamentos')
-        .select('valor, descricao, data_vencimento, empresa_id, empresas(nome)')
-        .eq('tipo', 'despesa')
-        .eq('status', 'pendente')
-        .order('data_vencimento', { ascending: true })
-        .limit(20),
-
-      // Contas a receber pendentes
-      supabase
-        .from('lancamentos')
-        .select('valor, descricao, data_vencimento, empresa_id, empresas(nome)')
-        .eq('tipo', 'receita')
-        .eq('status', 'pendente')
-        .order('data_vencimento', { ascending: true })
-        .limit(20),
-
-      // Inadimplentes (receita vencida)
-      supabase
-        .from('lancamentos')
-        .select('valor, descricao, data_vencimento, empresas(nome)')
-        .eq('tipo', 'receita')
-        .eq('status', 'pendente')
-        .lt('data_vencimento', hoje)
-        .limit(10),
-
-      // Lançamentos do mês
-      supabase
-        .from('lancamentos')
-        .select('tipo, valor, status, categoria')
-        .gte('data_vencimento', mesInicio)
-        .lte('data_vencimento', hoje)
-        .neq('status', 'cancelado'),
+      withTimeout(
+        supabase.from('lancamentos')
+          .select('valor, descricao, data_vencimento')
+          .eq('tipo', 'despesa').eq('status', 'pendente')
+          .order('data_vencimento', { ascending: true }).limit(20),
+        4000, empty
+      ),
+      withTimeout(
+        supabase.from('lancamentos')
+          .select('valor, descricao, data_vencimento')
+          .eq('tipo', 'receita').eq('status', 'pendente')
+          .order('data_vencimento', { ascending: true }).limit(20),
+        4000, empty
+      ),
+      withTimeout(
+        supabase.from('lancamentos')
+          .select('valor, descricao, data_vencimento')
+          .eq('tipo', 'receita').eq('status', 'pendente')
+          .lt('data_vencimento', hoje).limit(10),
+        4000, empty
+      ),
+      withTimeout(
+        supabase.from('lancamentos')
+          .select('tipo, valor, status')
+          .gte('data_vencimento', mesInicio)
+          .lte('data_vencimento', hoje)
+          .neq('status', 'cancelado'),
+        4000, empty
+      ),
     ]);
 
-    const pagarData  = pagar.data      ?? [];
-    const receberData = receber.data   ?? [];
-    const inadData   = inadimplentes.data ?? [];
-    const lancData   = lancamentos.data   ?? [];
+    const pagarData   = (pagar as any).data      ?? [];
+    const receberData = (receber as any).data     ?? [];
+    const inadData    = (inadimplentes as any).data ?? [];
+    const lancData    = (lancamentos as any).data   ?? [];
 
     const totalPagar   = pagarData.reduce((s: number, r: any) => s + Number(r.valor), 0);
     const totalReceber = receberData.reduce((s: number, r: any) => s + Number(r.valor), 0);
     const totalInadim  = inadData.reduce((s: number, r: any) => s + Number(r.valor), 0);
-
-    const receitaMes  = lancData.filter((r: any) => r.tipo === 'receita').reduce((s: number, r: any) => s + Number(r.valor), 0);
-    const despesaMes  = lancData.filter((r: any) => r.tipo === 'despesa').reduce((s: number, r: any) => s + Number(r.valor), 0);
-
-    // Vencendo hoje
-    const venceHoje = pagarData.filter((r: any) => r.data_vencimento?.startsWith(hoje));
+    const receitaMes   = lancData.filter((r: any) => r.tipo === 'receita').reduce((s: number, r: any) => s + Number(r.valor), 0);
+    const despesaMes   = lancData.filter((r: any) => r.tipo === 'despesa').reduce((s: number, r: any) => s + Number(r.valor), 0);
+    const venceHoje    = pagarData.filter((r: any) => r.data_vencimento?.startsWith(hoje));
 
     return {
       totalPagar, totalReceber, totalInadim,
@@ -82,11 +85,19 @@ async function fetchFinanceContext() {
       inadimplentes: inadData,
       contasPagar: pagarData,
       contasReceber: receberData,
-      temDados: lancData.length > 0,
+      temDados: lancData.length > 0 || pagarData.length > 0 || receberData.length > 0,
+      semConexao: false,
     };
   } catch (e) {
     console.error('fetchFinanceContext:', e);
-    return null;
+    // Retorna contexto vazio mas válido — não trava o chat
+    return {
+      totalPagar: 0, totalReceber: 0, totalInadim: 0,
+      receitaMes: 0, despesaMes: 0, lucroMes: 0,
+      qtdPagar: 0, qtdReceber: 0, qtdInadim: 0,
+      venceHoje: [], inadimplentes: [], contasPagar: [], contasReceber: [],
+      temDados: false, semConexao: true,
+    };
   }
 }
 
@@ -96,8 +107,16 @@ async function generateRealResponse(question: string, financeOnly: boolean): Pro
   const q = question.toLowerCase();
   const ctx = await fetchFinanceContext();
 
+  // Erro de conexão
+  if (!ctx) {
+    return 'Não foi possível conectar ao banco de dados. Verifique as variáveis VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no painel da Vercel.';
+  }
+  if ((ctx as any).semConexao) {
+    return 'Não consegui me conectar ao Supabase no momento. Verifique as configurações de ambiente e tente novamente.';
+  }
+
   // Sem dados ainda
-  if (!ctx || !ctx.temDados) {
+  if (!ctx.temDados) {
     const semDados = 'Ainda não há lançamentos cadastrados no sistema. Assim que a equipe financeira registrar as primeiras entradas e saídas, poderei responder com dados reais.';
 
     if (financeOnly) return semDados;
