@@ -10,6 +10,7 @@ import {
   Upload, AlertTriangle, Link, X, Check, ChevronRight, Info, Plus
 } from 'lucide-react';
 import { financeService } from '../../services/financeService';
+import { supabase } from '../../lib/supabase';
 import {
   KpiCard, StatusBadge, ActionButton, SectionCard,
   PageHeader, Table, Th, Td, Tr
@@ -146,7 +147,15 @@ function ModalNovoLancamento({ onClose }: { onClose: () => void }) {
 
 // ─── Aba Conciliação ───────────────────────────────────────────────────────
 
-function TabConciliacao() {
+type ContaBancaria = {
+  id: string;
+  banco_nome: string;
+  agencia: string;
+  conta: string;
+  empresa_nome?: string;
+};
+
+function TabConciliacao({ contasBancarias }: { contasBancarias: ContaBancaria[] }) {
   const [etapa, setEtapa] = useState<'upload' | 'revisao' | 'concluido'>('upload');
   const [dragging, setDragging] = useState(false);
   const [arquivo, setArquivo] = useState<{ nome: string } | null>(null);
@@ -191,21 +200,37 @@ function TabConciliacao() {
         ))}
       </div>
       <div className="rounded-2xl border border-slate-200 bg-white p-5">
-        <p className="text-sm font-semibold text-slate-700 mb-3">1. Selecione a conta bancária</p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {[
-            { id: 'itau',     label: 'Itaú',     desc: 'Ag. 7157 — CC 0099842-3',   cor: '#EC6625' },
-            { id: 'bradesco', label: 'Bradesco', desc: 'Ag. 1804 — CC 0084935-9',   cor: '#CC0000' },
-            { id: 'inter',    label: 'Inter',    desc: 'Ag. 0001-9 — CC 4596447-5', cor: '#FF7A00' },
-          ].map(c => (
-            <button key={c.id} onClick={() => setContaSelecionada(c.id)}
-              className={`flex items-center gap-3 p-3 rounded-xl border-2 transition text-left ${contaSelecionada === c.id ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 hover:border-slate-300 bg-white'}`}>
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold" style={{ background: c.cor }}>{c.label[0]}</div>
-              <div><p className="text-sm font-semibold text-slate-800">{c.label}</p><p className="text-xs text-slate-500">{c.desc}</p></div>
-              {contaSelecionada === c.id && <Check className="w-4 h-4 text-emerald-600 ml-auto" />}
-            </button>
-          ))}
-        </div>
+        <p className="text-sm font-semibold text-slate-700 mb-3">
+          1. Selecione a conta bancária
+          <span className="ml-2 text-xs font-normal text-slate-400">({contasBancarias.length} contas disponíveis)</span>
+        </p>
+        {contasBancarias.length === 0 ? (
+          <p className="text-sm text-slate-400 italic">Carregando contas...</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-72 overflow-y-auto pr-1">
+            {contasBancarias.map(c => {
+              const corBanco: Record<string, string> = {
+                'Itaú': '#EC6625', 'Bradesco': '#CC0000', 'Inter': '#FF7A00',
+                'Santander': '#EC0000', 'Caixa': '#005CA9', 'BB': '#F7D117',
+              };
+              const cor = corBanco[c.banco_nome] ?? '#333A56';
+              return (
+                <button key={c.id} onClick={() => setContaSelecionada(c.id)}
+                  className={`flex items-center gap-3 p-3 rounded-xl border-2 transition text-left ${contaSelecionada === c.id ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 hover:border-slate-300 bg-white'}`}>
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{ background: cor }}>
+                    {c.banco_nome[0]}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-slate-800 truncate">{c.banco_nome}</p>
+                    <p className="text-xs text-slate-500 truncate">Ag {c.agencia} — CC {c.conta}</p>
+                    {c.empresa_nome && <p className="text-xs text-slate-400 truncate">{c.empresa_nome}</p>}
+                  </div>
+                  {contaSelecionada === c.id && <Check className="w-4 h-4 text-emerald-600 flex-shrink-0" />}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
       <div className="rounded-2xl border border-slate-200 bg-white p-5">
         <p className="text-sm font-semibold text-slate-700 mb-3">2. Faça upload do extrato</p>
@@ -329,21 +354,34 @@ export function FluxoCaixa() {
   const [periodo, setPeriodo]         = useState('2026-03');
   const [abaAtiva, setAbaAtiva]       = useState<'extrato' | 'projecao' | 'contas' | 'conciliacao'>('extrato');
   const [showModalLancamento, setShowModalLancamento] = useState(false);
+  const [contasBancarias, setContasBancarias] = useState<ContaBancaria[]>([]);
 
   useEffect(() => {
     let mounted = true;
     async function loadData() {
       setLoading(true);
       try {
-        const [projData, banksData] = await Promise.all([
+        const [projData, banksData, contasData] = await Promise.all([
           financeService.getCashflowProjections(),
           financeService.getBankAccounts(),
+          supabase.from('contas_bancarias')
+            .select('id, banco_nome, agencia, conta, empresas(nome)')
+            .order('banco_nome'),
         ]);
         if (!mounted) return;
         if (projData?.length > 0)  setProjections(projData);
         if (banksData?.length > 0) {
           setContas(banksData);
           setSaldoAtual(banksData.reduce((a: number, b: any) => a + (b.balance || b.current_balance || 0), 0));
+        }
+        if (contasData.data) {
+          setContasBancarias(contasData.data.map((c: any) => ({
+            id: c.id,
+            banco_nome: c.banco_nome,
+            agencia: c.agencia ?? '',
+            conta: c.conta ?? '',
+            empresa_nome: c.empresas?.nome ?? '',
+          })));
         }
       } catch (e) { console.error('Erro ao carregar fluxo:', e); }
       finally { if (mounted) setLoading(false); }
@@ -543,7 +581,7 @@ export function FluxoCaixa() {
         )}
 
         {/* Conciliação */}
-        {abaAtiva === 'conciliacao' && <TabConciliacao />}
+        {abaAtiva === 'conciliacao' && <TabConciliacao contasBancarias={contasBancarias} />}
       </SectionCard>
 
       {showModalLancamento && <ModalNovoLancamento onClose={() => setShowModalLancamento(false)} />}
