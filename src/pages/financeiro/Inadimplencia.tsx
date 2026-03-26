@@ -11,13 +11,22 @@ export function Inadimplencia() {
   const [loading, setLoading] = useState(true);
   const [busca, setBusca]     = useState('');
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    const timeoutId = setTimeout(() => setLoading(false), 8000); // fallback
+    load().finally(() => clearTimeout(timeoutId));
+  }, []);
 
   async function load() {
     setLoading(true);
-    const data = await financeService.getInadimplencia();
-    setInadimplentes(data);
-    setLoading(false);
+    try {
+      const data = await financeService.getInadimplencia();
+      setInadimplentes(data ?? []);
+    } catch(e) {
+      console.error(e);
+      setInadimplentes([]);
+    } finally {
+      setLoading(false);
+    }
   }
 
   const filtrados = inadimplentes.filter(i =>
