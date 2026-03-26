@@ -8,7 +8,7 @@ interface ProtectedRouteProps {
   allowedRoles?: string[];
 }
 
-// Rotas permitidas para o perfil financeiro
+// Rotas que o perfil 'financeiro' pode acessar
 const ROTAS_FINANCEIRO = [
   '/financeiro',
   '/financeiro/lancamentos',
@@ -31,7 +31,6 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowe
     return () => clearTimeout(t);
   }, [loading]);
 
-  // Aguarda sessão
   if (loading && !timedOut) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
@@ -45,10 +44,9 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowe
     );
   }
 
-  // Não autenticado
   if (!isAuthenticated) return <Navigate to="/login" replace />;
 
-  // Perfil financeiro — só acessa rotas financeiras
+  // ── RBAC: perfil financeiro ──────────────────────────────────────────────
   if (profile?.role === 'financeiro') {
     const rotaAtual = location.pathname;
     const temAcesso = ROTAS_FINANCEIRO.some(r => rotaAtual === r || rotaAtual.startsWith(r + '/'));
@@ -60,10 +58,10 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowe
             <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto">
               <Lock className="w-8 h-8 text-slate-400" />
             </div>
-            <h2 className="text-xl font-bold text-slate-900">Acesso Restrito</h2>
+            <h2 className="text-xl font-bold text-slate-900">Acesso não autorizado para este perfil</h2>
             <p className="text-slate-500 text-sm">
-              Você não tem permissão para acessar este módulo.<br />
-              Seu perfil tem acesso somente ao módulo <strong>Financeiro</strong>.
+              Seu perfil tem acesso somente ao módulo <strong>Financeiro</strong>.<br />
+              Você será redirecionada automaticamente.
             </p>
             <Navigate to="/financeiro" replace />
           </div>
@@ -72,7 +70,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowe
     }
   }
 
-  // Controle de roles adicional (opcional)
+  // ── RBAC: roles explícitas ───────────────────────────────────────────────
   if (allowedRoles && profile && !allowedRoles.includes(profile.role)) {
     if (profile.role === 'financeiro') return <Navigate to="/financeiro" replace />;
     return <Navigate to="/dashboard" replace />;
