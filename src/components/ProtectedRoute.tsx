@@ -1,24 +1,37 @@
-import React, { useEffect, useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import React from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { Shield } from 'lucide-react';
+import { Shield, Lock } from 'lucide-react';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
   allowedRoles?: string[];
 }
 
+// Rotas permitidas para o perfil financeiro
+const ROTAS_FINANCEIRO = [
+  '/financeiro',
+  '/financeiro/lancamentos',
+  '/financeiro/receber',
+  '/financeiro/pagar',
+  '/financeiro/cobranca',
+  '/financeiro/fluxo-caixa',
+  '/financeiro/relatorios',
+  '/dashboard',
+];
+
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles }) => {
   const { isAuthenticated, profile, loading } = useAuth();
-  const [timedOut, setTimedOut] = useState(false);
+  const location = useLocation();
+  const [timedOut, setTimedOut] = React.useState(false);
 
-  // Se loading durar mais de 4s, força a saída para login
-  useEffect(() => {
+  React.useEffect(() => {
     if (!loading) return;
     const t = setTimeout(() => setTimedOut(true), 4000);
     return () => clearTimeout(t);
   }, [loading]);
 
+  // Aguarda sessão
   if (loading && !timedOut) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
@@ -32,9 +45,36 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowe
     );
   }
 
+  // Não autenticado
   if (!isAuthenticated) return <Navigate to="/login" replace />;
 
+  // Perfil financeiro — só acessa rotas financeiras
+  if (profile?.role === 'financeiro') {
+    const rotaAtual = location.pathname;
+    const temAcesso = ROTAS_FINANCEIRO.some(r => rotaAtual === r || rotaAtual.startsWith(r + '/'));
+
+    if (!temAcesso) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 max-w-md w-full text-center space-y-4">
+            <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto">
+              <Lock className="w-8 h-8 text-slate-400" />
+            </div>
+            <h2 className="text-xl font-bold text-slate-900">Acesso Restrito</h2>
+            <p className="text-slate-500 text-sm">
+              Você não tem permissão para acessar este módulo.<br />
+              Seu perfil tem acesso somente ao módulo <strong>Financeiro</strong>.
+            </p>
+            <Navigate to="/financeiro" replace />
+          </div>
+        </div>
+      );
+    }
+  }
+
+  // Controle de roles adicional (opcional)
   if (allowedRoles && profile && !allowedRoles.includes(profile.role)) {
+    if (profile.role === 'financeiro') return <Navigate to="/financeiro" replace />;
     return <Navigate to="/dashboard" replace />;
   }
 
