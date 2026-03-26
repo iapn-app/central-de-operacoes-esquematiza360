@@ -79,6 +79,9 @@ function App() {
             <Route path="financeiro/cobranca" element={<Cobranca />} />
             <Route path="financeiro/fluxo-caixa" element={<FluxoCaixa />} />
             <Route path="financeiro/relatorios" element={<RelatoriosFinanceiros />} />
+            <Route path="financeiro/caixa-bancos" element={<CaixaBancos />} />
+            <Route path="financeiro/inadimplencia" element={<FinanceiroInadimplencia />} />
+            <Route path="financeiro/dre" element={<ResultadoMes />} />
             <Route path="inteligencia-operacional" element={<InteligenciaOperacional />} />
             <Route path="mapa-risco" element={<MapaRisco />} />
             <Route path="performance" element={<Performance />} />
