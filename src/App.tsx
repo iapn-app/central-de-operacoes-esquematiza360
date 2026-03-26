@@ -24,6 +24,9 @@ import { ContasPagar } from "./pages/financeiro/ContasPagar";
 import { FluxoCaixa } from "./pages/financeiro/FluxoCaixa";
 import { Cobranca } from "./pages/financeiro/Cobranca";
 import { RelatoriosFinanceiros } from "./pages/financeiro/RelatoriosFinanceiros";
+import { CaixaBancos } from "./pages/financeiro/CaixaBancos";
+import { Inadimplencia as FinanceiroInadimplencia } from "./pages/financeiro/Inadimplencia";
+import { ResultadoMes } from "./pages/financeiro/ResultadoMes";
 
 import { InteligenciaOperacional } from "./pages/InteligenciaOperacional";
 import MapaRisco from "./pages/MapaRisco";
