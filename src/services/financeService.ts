@@ -55,17 +55,52 @@ export const financeService = {
   },
 
   async getFinancialEntries(filters?: { type?: string; status?: string; search?: string }) {
-    let query = supabase.from('financial_entries').select('*').order('created_at', { ascending: false });
-    if (filters?.type && filters.type !== 'todos') query = query.eq('type', filters.type);
-    if (filters?.status && filters.status !== 'todos') query = query.eq('status', filters.status);
-    if (filters?.search) query = query.ilike('description', `%${filters.search}%`);
-    const { data, error } = await query;
-    if (error) throw error;
-    return data ?? [];
+    try {
+      let query = supabase
+        .from('lancamentos')
+        .select('*, empresas(nome), contas_bancarias(banco_nome, conta)')
+        .order('created_at', { ascending: false });
+      if (filters?.type && filters.type !== 'todos') {
+        const tipo = filters.type === 'income' ? 'receita' : filters.type === 'expense' ? 'despesa' : filters.type;
+        query = query.eq('tipo', tipo);
+      }
+      if (filters?.status && filters.status !== 'todos') query = query.eq('status', filters.status);
+      if (filters?.search) query = query.ilike('descricao', `%${filters.search}%`);
+      const { data, error } = await query;
+      if (error) { console.error('getFinancialEntries:', error); return []; }
+      // Normaliza campos para manter compatibilidade com a UI existente
+      return (data ?? []).map((r: any) => ({
+        ...r,
+        id: r.id,
+        description: r.descricao ?? '',
+        amount: Number(r.valor ?? 0),
+        type: r.tipo === 'receita' ? 'income' : 'expense',
+        category: r.categoria ?? '',
+        status: r.status ?? 'pendente',
+        due_date: r.data_vencimento ? r.data_vencimento.split('T')[0] : '',
+        payment_date: r.data_pagamento ? r.data_pagamento.split('T')[0] : '',
+        empresa_nome: r.empresas?.nome ?? '',
+        conta_info: r.contas_bancarias ? `${r.contas_bancarias.banco_nome} — ${r.contas_bancarias.conta}` : '',
+      }));
+    } catch (err) {
+      console.error('getFinancialEntries unexpected:', err);
+      return [];
+    }
   },
 
   async createFinancialEntry(entry: any) {
-    const { data, error } = await supabase.from('financial_entries').insert(entry).select().single();
+    const payload = {
+      descricao:       entry.description ?? entry.descricao ?? '',
+      valor:           Number(entry.amount ?? entry.valor ?? 0),
+      tipo:            entry.type === 'income' ? 'receita' : entry.type === 'expense' ? 'despesa' : (entry.tipo ?? 'despesa'),
+      categoria:       entry.category ?? entry.categoria ?? 'Outros',
+      status:          entry.status ?? 'pendente',
+      data_vencimento: entry.due_date   ?? entry.data_vencimento ?? null,
+      data_pagamento:  entry.payment_date ?? entry.data_pagamento ?? null,
+      empresa_id:      entry.empresa_id ?? null,
+      conta_id:        entry.conta_id   ?? null,
+    };
+    const { data, error } = await supabase.from('lancamentos').insert(payload).select().single();
     if (error) throw error;
     return data;
   },
