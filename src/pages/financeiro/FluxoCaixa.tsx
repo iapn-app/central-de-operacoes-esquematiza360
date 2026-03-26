@@ -92,50 +92,72 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 // ─── Modal Novo Lançamento ─────────────────────────────────────────────────
 
 function ModalNovoLancamento({ onClose }: { onClose: () => void }) {
-  const [form, setForm] = useState({ descricao: '', valor: '', tipo: 'entrada', categoria: '', vencimento: '' });
+  const [form, setForm] = useState({ descricao: '', valor: '', tipo: 'income', categoria: '', vencimento: '', empresa_id: '', conta_id: '' });
+  const [empresas, setEmpresas] = useState<any[]>([]);
+  const [contas, setContas]     = useState<any[]>([]);
   const [salvando, setSalvando] = useState(false);
+  const inp = "w-full p-3 border border-gray-200 rounded-xl bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-emerald-500";
+
+  useEffect(() => {
+    supabase.from('empresas').select('id, nome').order('nome').then(({ data }) => setEmpresas(data ?? []));
+  }, []);
+
+  useEffect(() => {
+    if (!form.empresa_id) { setContas([]); return; }
+    supabase.from('contas_bancarias').select('id, banco_nome, agencia, conta')
+      .eq('empresa_id', form.empresa_id)
+      .then(({ data }) => setContas(data ?? []));
+  }, [form.empresa_id]);
 
   async function salvar() {
-    if (!form.descricao || !form.valor) return;
+    if (!form.descricao || !form.valor || !form.empresa_id || !form.conta_id) return;
     setSalvando(true);
-    await new Promise(r => setTimeout(r, 800));
-    setSalvando(false);
-    onClose();
+    try {
+      await financeService.createFinancialEntry({
+        description: form.descricao, amount: form.valor, type: form.tipo,
+        category: form.categoria || 'Outros', status: 'pendente',
+        due_date: form.vencimento, empresa_id: form.empresa_id, conta_id: form.conta_id,
+      });
+      onClose();
+    } finally { setSalvando(false); }
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 border border-gray-100">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 border border-gray-100 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-lg font-bold text-slate-900">Novo Lançamento</h2>
           <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-lg transition"><X className="w-4 h-4 text-gray-500" /></button>
         </div>
         <div className="space-y-3">
-          <input type="text" placeholder="Descrição" value={form.descricao}
-            onChange={e => setForm({...form, descricao: e.target.value})}
-            className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-emerald-500" />
+          <input type="text" placeholder="Descrição *" value={form.descricao}
+            onChange={e => setForm({...form, descricao: e.target.value})} className={inp} />
           <div className="grid grid-cols-2 gap-3">
-            <input type="number" placeholder="Valor (R$)" value={form.valor}
-              onChange={e => setForm({...form, valor: e.target.value})}
-              className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-emerald-500" />
-            <select value={form.tipo} onChange={e => setForm({...form, tipo: e.target.value})}
-              className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-emerald-500">
-              <option value="entrada">Entrada</option>
-              <option value="saida">Saída</option>
+            <input type="number" placeholder="Valor (R$) *" value={form.valor}
+              onChange={e => setForm({...form, valor: e.target.value})} className={inp} min="0" step="0.01" />
+            <select value={form.tipo} onChange={e => setForm({...form, tipo: e.target.value})} className={inp}>
+              <option value="income">Entrada</option>
+              <option value="expense">Saída</option>
             </select>
           </div>
-          <select value={form.categoria} onChange={e => setForm({...form, categoria: e.target.value})}
-            className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-emerald-500">
+          <select value={form.categoria} onChange={e => setForm({...form, categoria: e.target.value})} className={inp}>
             <option value="">Categoria</option>
-            {['Recebimento de Cliente', 'Folha de Pagamento', 'Encargos (INSS/FGTS)', 'Fornecedores', 'Impostos', 'Frota', 'Outros'].map(c =>
-              <option key={c} value={c}>{c}</option>)}
+            {['Serviço Prestado','Recebimento de Cliente','Folha de Pagamento','Encargos (INSS/FGTS)','Fornecedores','Impostos','Frota','Aluguel','TI','Outros'].map(cat =>
+              <option key={cat} value={cat}>{cat}</option>)}
           </select>
-          <input type="date" value={form.vencimento} onChange={e => setForm({...form, vencimento: e.target.value})}
-            className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-emerald-500" />
+          <select value={form.empresa_id} onChange={e => setForm({...form, empresa_id: e.target.value, conta_id: ''})} className={inp}>
+            <option value="">Empresa *</option>
+            {empresas.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
+          </select>
+          <select value={form.conta_id} onChange={e => setForm({...form, conta_id: e.target.value})} className={inp} disabled={!form.empresa_id}>
+            <option value="">Conta bancária *</option>
+            {contas.map(c => <option key={c.id} value={c.id}>{c.banco_nome} Ag {c.agencia} — {c.conta}</option>)}
+          </select>
+          <input type="date" value={form.vencimento} onChange={e => setForm({...form, vencimento: e.target.value})} className={inp} />
         </div>
         <div className="flex justify-end gap-3 mt-5 pt-4 border-t border-gray-100">
           <button onClick={onClose} className="px-4 py-2.5 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-100 transition">Cancelar</button>
-          <button onClick={salvar} disabled={salvando || !form.descricao || !form.valor}
+          <button onClick={salvar} disabled={salvando || !form.descricao || !form.valor || !form.empresa_id || !form.conta_id}
             className="px-4 py-2.5 rounded-xl text-sm font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition disabled:opacity-50">
             {salvando ? 'Salvando...' : 'Salvar'}
           </button>
@@ -356,32 +378,41 @@ export function FluxoCaixa() {
   const [showModalLancamento, setShowModalLancamento] = useState(false);
   const [contasBancarias, setContasBancarias] = useState<ContaBancaria[]>([]);
 
+  // Carrega contas bancárias — independente do período
+  useEffect(() => {
+    let alive = true;
+    supabase
+      .from('contas_bancarias')
+      .select('id, banco_nome, agencia, conta, empresas(nome)')
+      .order('banco_nome')
+      .then(({ data, error }) => {
+        if (!alive || error || !data) return;
+        setContasBancarias(data.map((c: any) => ({
+          id: c.id,
+          banco_nome: c.banco_nome ?? '',
+          agencia:    c.agencia    ?? '',
+          conta:      c.conta      ?? '',
+          empresa_nome: c.empresas?.nome ?? '',
+        })));
+      });
+    return () => { alive = false; };
+  }, []);
+
   useEffect(() => {
     let mounted = true;
     async function loadData() {
       setLoading(true);
       try {
-        const [projData, banksData, contasData] = await Promise.all([
+        const [projData, banksData] = await Promise.all([
           financeService.getCashflowProjections(),
           financeService.getBankAccounts(),
-          supabase.from('contas_bancarias')
-            .select('id, banco_nome, agencia, conta, empresas(nome)')
-            .order('banco_nome'),
         ]);
         if (!mounted) return;
-        if (projData?.length > 0)  setProjections(projData);
-        if (banksData?.length > 0) {
-          setContas(banksData);
-          setSaldoAtual(banksData.reduce((a: number, b: any) => a + (b.balance || b.current_balance || 0), 0));
-        }
-        if (contasData.data) {
-          setContasBancarias(contasData.data.map((c: any) => ({
-            id: c.id,
-            banco_nome: c.banco_nome,
-            agencia: c.agencia ?? '',
-            conta: c.conta ?? '',
-            empresa_nome: c.empresas?.nome ?? '',
-          })));
+        if (projData?.length > 0) setProjections(projData);
+        const accs = banksData ?? [];
+        if (accs.length > 0) {
+          setContas(accs);
+          setSaldoAtual(accs.reduce((a: number, b: any) => a + (b.balance || 0), 0));
         }
       } catch (e) { console.error('Erro ao carregar fluxo:', e); }
       finally { if (mounted) setLoading(false); }
