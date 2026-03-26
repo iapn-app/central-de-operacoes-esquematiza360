@@ -83,9 +83,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     setLoading(true);
-    await supabase.auth.signOut();
-    setSession(null); setUser(null); setProfile(null);
-    setLoading(false);
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.error('signOut error:', e);
+    } finally {
+      setSession(null); setUser(null); setProfile(null);
+      setLoading(false);
+      // Força navegação para login independente do estado do Router
+      window.location.href = '/login';
+    }
   };
 
   return (
