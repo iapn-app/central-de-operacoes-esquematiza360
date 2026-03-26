@@ -1,4 +1,5 @@
 import { NavLink } from "react-router-dom";
+import { supabase } from "../lib/supabase";
 import * as Icons from "lucide-react";
 import { ChevronRight, LogOut, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import logoHorizontal from "../assets/logos/logo-horizontal.png";
@@ -198,8 +199,10 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       <div className="p-3 border-t border-slate-100">
         <button
           type="button"
-          onClick={async () => {
-            try { await signOut(); } catch { window.location.href = '/login'; }
+          onClick={() => {
+            supabase.auth.signOut().finally(() => {
+              window.location.href = '/login';
+            });
           }}
           className={`flex items-center w-full text-slate-600 hover:text-red-600 rounded-xl hover:bg-red-50 text-sm active:scale-95 transition-all cursor-pointer ${
             collapsed ? "justify-center py-3" : "gap-3 px-3 py-2.5"
