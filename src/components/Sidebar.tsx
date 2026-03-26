@@ -42,13 +42,16 @@ const ALL_MODULES: SidebarGroup[] = [
   {
     category: "FINANCEIRO",
     items: [
-      { id: "financeiro",     label: "Dashboard Financeiro", route: "/financeiro",              icon: "DollarSign" },
-      { id: "lancamentos",    label: "Lançamentos",          route: "/financeiro/lancamentos",   icon: "Receipt" },
-      { id: "receber",        label: "Contas a Receber",     route: "/financeiro/receber",       icon: "Wallet" },
-      { id: "pagar",          label: "Contas a Pagar",       route: "/financeiro/pagar",         icon: "BadgeDollarSign" },
-      { id: "cobranca",       label: "Cobrança",             route: "/financeiro/cobranca",      icon: "HandCoins" },
-      { id: "fluxo-caixa",    label: "Fluxo de Caixa",       route: "/financeiro/fluxo-caixa",   icon: "BarChart3" },
-      { id: "relatorios-fin", label: "Relatórios",           route: "/financeiro/relatorios",    icon: "FileText" },
+      { id: "financeiro",     label: "Dashboard Financeiro", route: "/financeiro",                icon: "DollarSign" },
+      { id: "lancamentos",    label: "Lançamentos",          route: "/financeiro/lancamentos",    icon: "Receipt" },
+      { id: "receber",        label: "Contas a Receber",     route: "/financeiro/receber",        icon: "Wallet" },
+      { id: "pagar",          label: "Contas a Pagar",       route: "/financeiro/pagar",          icon: "BadgeDollarSign" },
+      { id: "inadimplencia",  label: "Inadimplência",        route: "/financeiro/inadimplencia",  icon: "AlertTriangle" },
+      { id: "cobranca",       label: "Cobrança",             route: "/financeiro/cobranca",       icon: "HandCoins" },
+      { id: "caixa-bancos",   label: "Caixa e Bancos",       route: "/financeiro/caixa-bancos",   icon: "Landmark" },
+      { id: "fluxo-caixa",    label: "Fluxo de Caixa",       route: "/financeiro/fluxo-caixa",    icon: "BarChart3" },
+      { id: "dre",            label: "DRE Gerencial",        route: "/financeiro/dre",            icon: "PieChart" },
+      { id: "relatorios-fin", label: "Relatórios",           route: "/financeiro/relatorios",     icon: "FileText" },
     ],
   },
   {
