@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { PergunteCentral } from "./AssistantChat";
 import { Outlet } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 
@@ -31,5 +32,6 @@ export default function Layout() {
 
       </div>
     </div>
+    <PergunteCentral />
   );
 }
