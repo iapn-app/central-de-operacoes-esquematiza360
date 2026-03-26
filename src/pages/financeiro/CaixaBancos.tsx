@@ -18,16 +18,47 @@ export function CaixaBancos() {
   const [contaSel, setContaSel]         = useState<string>('');
   const [loading, setLoading]           = useState(true);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    supabase
+      .from('contas_bancarias')
+      .select('id, banco_nome, agencia, conta, saldo_atual, empresa_id, empresas(nome)')
+      .order('banco_nome')
+      .then(({ data }) => {
+        if (!alive) return;
+        setAccounts((data ?? []).map((c: any) => ({
+          id:             c.id,
+          bank_name:      c.banco_nome ?? '',
+          agency:         c.agencia    ?? '',
+          account_number: c.conta      ?? '',
+          balance:        Number(c.saldo_atual ?? 0),
+          empresa_nome:   c.empresas?.nome ?? '',
+          name:           `${c.banco_nome} — ${c.conta}`,
+        })));
+        setLoading(false);
+      })
+      .catch(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, []);
+
   useEffect(() => {
     if (contaSel) loadTrans(contaSel);
     else loadTrans();
   }, [contaSel]);
 
   async function load() {
+    // reload
     setLoading(true);
-    const accs = await financeService.getBankAccounts();
-    setAccounts(accs);
+    const { data } = await supabase
+      .from('contas_bancarias')
+      .select('id, banco_nome, agencia, conta, saldo_atual, empresa_id, empresas(nome)')
+      .order('banco_nome');
+    setAccounts((data ?? []).map((c: any) => ({
+      id: c.id, bank_name: c.banco_nome ?? '', agency: c.agencia ?? '',
+      account_number: c.conta ?? '', balance: Number(c.saldo_atual ?? 0),
+      empresa_nome: c.empresas?.nome ?? '', name: `${c.banco_nome} — ${c.conta}`,
+    })));
     setLoading(false);
   }
 
