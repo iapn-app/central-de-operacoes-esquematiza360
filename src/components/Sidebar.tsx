@@ -196,12 +196,17 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
       {/* FOOTER */}
       <div className="p-3 border-t border-slate-100">
-        <button onClick={signOut}
-          className={`flex items-center w-full text-slate-600 hover:text-red-600 rounded-xl hover:bg-red-50 text-sm ${
+        <button
+          type="button"
+          onClick={async () => {
+            try { await signOut(); } catch { window.location.href = '/login'; }
+          }}
+          className={`flex items-center w-full text-slate-600 hover:text-red-600 rounded-xl hover:bg-red-50 text-sm active:scale-95 transition-all cursor-pointer ${
             collapsed ? "justify-center py-3" : "gap-3 px-3 py-2.5"
-          }`}>
+          }`}
+        >
           <LogOut className="w-5 h-5" />
-          {!collapsed && <span>Encerrar</span>}
+          {!collapsed && <span>Encerrar sessão</span>}
         </button>
       </div>
     </aside>
