@@ -17,6 +17,9 @@ const ROTAS_FINANCEIRO = [
   '/financeiro/cobranca',
   '/financeiro/fluxo-caixa',
   '/financeiro/relatorios',
+  '/financeiro/caixa-bancos',
+  '/financeiro/inadimplencia',
+  '/financeiro/dre',
   '/dashboard',
 ];
 
