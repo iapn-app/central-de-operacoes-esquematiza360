@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Plus, Clock, AlertCircle, RefreshCw, CheckCircle, DollarSign } from 'lucide-react';
+import { Clock, AlertCircle, RefreshCw, CheckCircle, DollarSign } from 'lucide-react';
 import { financeService } from '../../services/financeService';
 import { KpiCard, ActionButton, PageHeader } from './components/FinanceComponents';
 
@@ -17,10 +17,6 @@ const STAGE_COLORS: Record<string, string> = {
   'BAIXA':      'bg-gray-500',
 };
 
-function diasAtraso(due_date: string) {
-  return Math.max(0, Math.floor((Date.now() - new Date(due_date).getTime()) / 86400000));
-}
-
 function autoStage(dias: number): string {
   if (dias <= 5)  return 'AVISO';
   if (dias <= 15) return 'COBRANÇA';
@@ -34,27 +30,31 @@ export function Cobranca() {
   const [loading, setLoading]         = useState(true);
 
   useEffect(() => {
-    const timeoutId = setTimeout(() => setLoading(false), 8000); // fallback
-    load().finally(() => clearTimeout(timeoutId));
+    const tid = setTimeout(() => setLoading(false), 8000);
+    load().finally(() => clearTimeout(tid));
   }, []);
 
   async function load() {
     setLoading(true);
     try {
-    const data = await financeService.getInadimplencia();
-    // Atribui estágio automaticamente baseado nos dias de atraso
-    const comStage = (data ?? []).map((r: any) => ({
-      ...r,
-      stage: r.stage ?? autoStage(r.dias_atraso ?? 0),
-    }));
-    setReceivables(comStage);
-    setLoading(false);
+      const data = await financeService.getInadimplencia();
+      const comStage = (data ?? []).map((r: any) => ({
+        ...r,
+        stage: autoStage(r.dias_atraso ?? 0),
+      }));
+      setReceivables(comStage);
+    } catch (e) {
+      console.error('Cobranca load error:', e);
+      setReceivables([]);
+    } finally {
+      setLoading(false);
+    }
   }
 
-  const totalAberto  = receivables.reduce((a, r) => a + r.amount, 0);
-  const vence7dias   = receivables.filter(r => (r.dias_atraso ?? 0) <= 7).reduce((a, r) => a + r.amount, 0);
-  const emCobranca   = receivables.filter(r => r.stage !== 'BAIXA').reduce((a, r) => a + r.amount, 0);
-  const recuperado   = receivables.filter(r => r.stage === 'BAIXA').reduce((a, r) => a + r.amount, 0);
+  const totalAberto = receivables.reduce((a, r) => a + r.amount, 0);
+  const vence7dias  = receivables.filter(r => (r.dias_atraso ?? 0) <= 7).reduce((a, r) => a + r.amount, 0);
+  const emCobranca  = receivables.filter(r => r.stage !== 'BAIXA').reduce((a, r) => a + r.amount, 0);
+  const recuperado  = receivables.filter(r => r.stage === 'BAIXA').reduce((a, r) => a + r.amount, 0);
 
   const kpis = [
     { title: 'Total em Aberto',   value: fmt(totalAberto), icon: AlertCircle, color: 'text-red-500' },
@@ -81,14 +81,13 @@ export function Cobranca() {
         ))}
       </div>
 
-      {/* Legenda régua */}
       <div className="flex flex-wrap gap-2 text-xs">
         {[
-          { stage: 'AVISO', desc: '1–5 dias', cor: 'bg-amber-100 text-amber-700' },
-          { stage: 'COBRANÇA', desc: '6–15 dias', cor: 'bg-orange-100 text-orange-700' },
+          { stage: 'AVISO',      desc: '1–5 dias',   cor: 'bg-amber-100 text-amber-700' },
+          { stage: 'COBRANÇA',   desc: '6–15 dias',  cor: 'bg-orange-100 text-orange-700' },
           { stage: 'NEGOCIAÇÃO', desc: '16–30 dias', cor: 'bg-blue-100 text-blue-700' },
-          { stage: 'JURÍDICO', desc: '31–60 dias', cor: 'bg-purple-100 text-purple-700' },
-          { stage: 'BAIXA', desc: '60+ dias', cor: 'bg-gray-100 text-gray-600' },
+          { stage: 'JURÍDICO',   desc: '31–60 dias', cor: 'bg-purple-100 text-purple-700' },
+          { stage: 'BAIXA',      desc: '60+ dias',   cor: 'bg-gray-100 text-gray-600' },
         ].map(s => (
           <span key={s.stage} className={`px-3 py-1 rounded-full font-semibold ${s.cor}`}>
             {s.stage}: {s.desc}
@@ -104,8 +103,10 @@ export function Cobranca() {
       ) : receivables.length === 0 ? (
         <div className="py-16 text-center space-y-3">
           <DollarSign className="w-10 h-10 text-gray-200 mx-auto" />
-          <p className="text-gray-500 font-semibold">Nenhum título em cobrança. 🎉</p>
-          <p className="text-gray-400 text-xs">Receitas vencidas e pendentes aparecem aqui automaticamente.</p>
+          <p className="text-gray-500 font-semibold">Nenhum título em cobrança.</p>
+          <p className="text-gray-400 text-xs">
+            Receitas vencidas e pendentes aparecem aqui automaticamente.
+          </p>
         </div>
       ) : (
         <div className="flex gap-4 overflow-x-auto pb-4">
