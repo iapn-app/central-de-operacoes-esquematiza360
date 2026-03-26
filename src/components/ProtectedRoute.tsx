@@ -37,16 +37,16 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowe
 
   if (loading && !timedOut) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#333A56]">
-        <div className="flex flex-col items-center gap-6">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-white">
+        <div className="flex flex-col items-center gap-8">
           <img
             src={logoSymbol}
             alt="Esquematiza"
-            className="w-20 h-20 object-contain opacity-90"
+            className="w-24 h-24 object-contain"
           />
-          <div className="flex items-center gap-2">
-            <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white/60" />
-            <p className="text-white/70 text-sm font-medium tracking-widest uppercase">
+          <div className="flex items-center gap-3">
+            <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-[#333A56]" />
+            <p className="text-slate-500 text-sm font-medium tracking-widest uppercase">
               Verificando acesso...
             </p>
           </div>
