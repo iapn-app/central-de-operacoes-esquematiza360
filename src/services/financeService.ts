@@ -24,10 +24,12 @@ export async function getFinancialSummary() {
   let saidas = 0
 
   data.forEach((item: any) => {
-    if (Number(item.amount) > 0) {
-      entradas += Number(item.amount)
+    const amount = Number(item.amount || 0)
+
+    if (amount > 0) {
+      entradas += amount
     } else {
-      saidas += Math.abs(Number(item.amount))
+      saidas += Math.abs(amount)
     }
   })
 
@@ -36,7 +38,7 @@ export async function getFinancialSummary() {
   return {
     entradas,
     saidas,
-    saldo
+    saldo,
   }
 }
 
@@ -67,8 +69,8 @@ export async function createFinancialEntry(payload: FinancialEntryPayload) {
         categoria: payload.categoria || null,
         vencimento: payload.vencimento || null,
         empresa_id: payload.empresa_id,
-        conta_id: payload.conta_id
-      }
+        conta_id: payload.conta_id,
+      },
     ])
     .select()
     .single()
@@ -81,10 +83,10 @@ export async function createFinancialEntry(payload: FinancialEntryPayload) {
   return data
 }
 
-const financeService = {
+export const financeService = {
   getFinancialSummary,
   getFinancialData,
-  createFinancialEntry
+  createFinancialEntry,
 }
 
 export default financeService
