@@ -50,8 +50,16 @@ const ALL_MODULES: SidebarGroup[] = [
       { id: "fluxo-caixa",    label: "Fluxo de Caixa",       route: "/financeiro/fluxo-caixa",   icon: "BarChart3" },
       { id: "dre",            label: "DRE Gerencial",        route: "/financeiro/dre",           icon: "PieChart" },
       { id: "relatorios-fin", label: "Relatórios",           route: "/financeiro/relatorios",    icon: "FileText" },
-      { id: "rentabilidade",  label: "Rentabilidade",        route: "/financeiro/rentabilidade", icon: "TrendingUp" },
-      { id: "orcamento",         label: "Orç. vs Realizado",    route: "/financeiro/orcamento",     icon: "Target" },
+    ],
+  },
+  {
+    category: "CONTRATOS & RH",
+    items: [
+      { id: "contratos",       label: "Contratos",           route: "/contratos",                icon: "FileSignature" },
+      { id: "notas-fiscais",   label: "Notas Fiscais",       route: "/notas-fiscais",            icon: "FileText" },
+      { id: "rentabilidade",   label: "Rentabilidade",       route: "/financeiro/rentabilidade", icon: "TrendingUp" },
+      { id: "orcamento",       label: "Orç. vs Realizado",   route: "/financeiro/orcamento",     icon: "Target" },
+      { id: "folha-pagamento", label: "Folha de Pagamento",  route: "/folha-pagamento",          icon: "Receipt" },
     ],
   },
   {
@@ -64,12 +72,9 @@ const ALL_MODULES: SidebarGroup[] = [
     ],
   },
   {
-    category: "ADMIN",
+    category: "CONFIGURAÇÕES",
     items: [
-      { id: "contratos",        label: "Contratos",          route: "/contratos",        icon: "FileSignature" },
-      { id: "folha-pagamento",  label: "Folha de Pagamento", route: "/folha-pagamento",  icon: "Receipt" },
-      { id: "notas-fiscais",    label: "Notas Fiscais",      route: "/notas-fiscais",    icon: "FileText" },
-      { id: "configuracoes",    label: "Configurações",      route: "/configuracoes",    icon: "Settings" },
+      { id: "configuracoes", label: "Configurações do Sistema", route: "/configuracoes", icon: "Settings" },
     ],
   },
 ];
@@ -85,11 +90,11 @@ const MODULOS_FINANCEIRO = [
   "dashboard",
   "financeiro", "lancamentos", "receber", "pagar",
   "inadimplencia", "cobranca", "caixa-bancos", "fluxo-caixa",
-  "dre", "relatorios-fin", "rentabilidade", "orcamento",
+  "dre", "relatorios-fin",
+  "contratos", "notas-fiscais", "rentabilidade", "orcamento", "folha-pagamento",
 ];
 
 const EMAIL_ADMIN_MASTER = "mellaurj@gmail.com";
-
 const STORAGE_KEY = "esquematiza_modulos_ativos";
 
 function lerModulosAtivos(): Record<string, boolean> {
@@ -113,19 +118,16 @@ function filtrarModulos(
     .map(group => ({
       ...group,
       items: group.items.filter(item => {
-        // Sempre visível independente de tudo
+        // Sempre visível
         if (SEMPRE_VISIVEIS.includes(item.id)) return true;
-
-        // Perfil financeiro: só vê módulos financeiros
+        // Perfil financeiro
         if (role === "financeiro") return MODULOS_FINANCEIRO.includes(item.id);
-
-        // Admin master: respeita toggles do localStorage
+        // Admin master: respeita toggles
         if (isAdminMaster) {
           if (!temConfiguracoes) return true;
           return modulosAtivos[item.id] !== false;
         }
-
-        // Demais (owner, gerente): tudo exceto configuracoes
+        // Demais: tudo exceto configuracoes
         return item.id !== "configuracoes";
       }),
     }))
@@ -142,9 +144,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const [modulosAtivos, setModulosAtivos] = useState<Record<string, boolean>>(lerModulosAtivos);
 
   useEffect(() => {
-    function handleAtualizar() {
-      setModulosAtivos(lerModulosAtivos());
-    }
+    function handleAtualizar() { setModulosAtivos(lerModulosAtivos()); }
     window.addEventListener("modulos-atualizados", handleAtualizar);
     window.addEventListener("focus", handleAtualizar);
     return () => {
