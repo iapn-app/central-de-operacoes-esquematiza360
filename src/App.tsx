@@ -37,6 +37,7 @@ import { Contratos } from "./pages/Contratos";
 import { FolhaPagamento } from "./pages/FolhaPagamento";
 import { NotasFiscais } from "./pages/NotasFiscais";
 import { OrcamentoRealizado } from "./pages/financeiro/OrcamentoRealizado";
+import { RentabilidadeContratos } from "./pages/financeiro/RentabilidadeContratos";
 import { OpenFinance } from "./pages/financeiro/OpenFinance";
 import { Configuracoes } from "./pages/Configuracoes";
 
@@ -97,6 +98,7 @@ function App() {
             <Route path="folha-pagamento" element={<FolhaPagamento />} />
             <Route path="notas-fiscais" element={<NotasFiscais />} />
             <Route path="financeiro/orcamento" element={<OrcamentoRealizado />} />
+            <Route path="financeiro/rentabilidade" element={<RentabilidadeContratos />} />
             <Route path="financeiro/open-finance" element={<OpenFinance />} />
             <Route path="configuracoes" element={<Configuracoes />} />
           </Route>
