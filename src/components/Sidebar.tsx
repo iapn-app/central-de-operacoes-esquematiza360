@@ -196,21 +196,25 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       </div>
 
       {/* FOOTER */}
-      <div className="p-3 border-t border-slate-100">
-        <button
-          type="button"
-          onClick={() => {
-            supabase.auth.signOut().finally(() => {
-              window.location.href = '/login';
+      <div className="p-3 border-t border-slate-100" style={{ position: 'relative', zIndex: 50 }}>
+        <a
+          href="/login"
+          onClick={(e) => {
+            e.preventDefault();
+            supabase.auth.signOut().then(() => {
+              window.location.replace('/login');
+            }).catch(() => {
+              window.location.replace('/login');
             });
           }}
-          className={`flex items-center w-full text-slate-600 hover:text-red-600 rounded-xl hover:bg-red-50 text-sm active:scale-95 transition-all cursor-pointer ${
-            collapsed ? "justify-center py-3" : "gap-3 px-3 py-2.5"
+          style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', textDecoration: 'none' }}
+          className={`text-slate-600 hover:text-red-600 rounded-xl hover:bg-red-50 text-sm transition-colors ${
+            collapsed ? 'justify-center py-3' : 'gap-3 px-3 py-2.5'
           }`}
         >
-          <LogOut className="w-5 h-5" />
-          {!collapsed && <span>Encerrar sessão</span>}
-        </button>
+          <LogOut className="w-5 h-5" style={{ flexShrink: 0 }} />
+          {!collapsed && <span style={{ marginLeft: 8 }}>Encerrar sessão</span>}
+        </a>
       </div>
     </aside>
   );
