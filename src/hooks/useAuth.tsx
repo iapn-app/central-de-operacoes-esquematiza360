@@ -17,19 +17,32 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType>({
-  user: null, session: null, profile: null,
-  loading: true, isAuthenticated: false,
-  isRecoveryMode: false, authError: null,
-  signIn: async () => {}, signOut: async () => {}, refreshProfile: async () => {},
+  user: null,
+  session: null,
+  profile: null,
+  loading: true,
+  isAuthenticated: false,
+  isRecoveryMode: false,
+  authError: null,
+  signIn: async () => {},
+  signOut: async () => {},
+  refreshProfile: async () => {},
 });
 
 async function fetchProfile(): Promise<UserProfile | null> {
   try {
     const { data, error } = await supabase.rpc('get_my_profile');
-    if (error) { console.warn('get_my_profile error:', error.message); return null; }
-    if (Array.isArray(data)) return data.length > 0 ? data[0] : null;
+
+    if (error) {
+      console.warn('get_my_profile error:', error.message);
+      return null;
+    }
+
+    if (Array.isArray(data)) return data[0] ?? null;
     return data ?? null;
-  } catch (e) { return null; }
+  } catch {
+    return null;
+  }
 }
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -40,42 +53,88 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isRecoveryMode] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
-  const refreshProfile = async () => { setProfile(await fetchProfile()); };
+  const refreshProfile = async () => {
+    const p = await fetchProfile();
+    setProfile(p);
+  };
 
   useEffect(() => {
     let mounted = true;
 
-    supabase.auth.getSession().then(async ({ data: { session: s } }) => {
-      if (!mounted) return;
-      if (s) { setSession(s); setUser(s.user); setProfile(await fetchProfile()); }
-      if (mounted) setLoading(false);
-    }).catch(() => { if (mounted) setLoading(false); });
+    async function init() {
+      try {
+        const { data } = await supabase.auth.getSession();
+        const s = data.session;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, s) => {
+        if (!mounted) return;
+
+        if (s) {
+          setSession(s);
+          setUser(s.user);
+
+          // 🔥 NÃO BLOQUEIA O APP
+          fetchProfile().then(p => {
+            if (mounted) setProfile(p);
+          });
+        }
+      } catch (e) {
+        console.error('init auth error:', e);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+
+    init();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
       if (!mounted) return;
-      if (event === 'SIGNED_OUT') { setSession(null); setUser(null); setProfile(null); setLoading(false); return; }
-      if (s) { setSession(s); setUser(s.user); setProfile(await fetchProfile()); setLoading(false); }
+
+      if (event === 'SIGNED_OUT') {
+        setSession(null);
+        setUser(null);
+        setProfile(null);
+        setLoading(false);
+        return;
+      }
+
+      if (s) {
+        setSession(s);
+        setUser(s.user);
+
+        fetchProfile().then(p => {
+          if (mounted) setProfile(p);
+        });
+
+        setLoading(false);
+      }
     });
 
-    return () => { mounted = false; subscription.unsubscribe(); };
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
     setLoading(true);
     setAuthError(null);
+
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        if (error.message.includes('Invalid login credentials')) throw new Error('E-mail ou senha incorretos.');
-        throw new Error(error.message);
-      }
+
+      if (error) throw new Error(error.message);
+
       setSession(data.session);
       setUser(data.session.user);
-      setProfile(await fetchProfile());
-      setAuthError(null);
+
+      // 🔥 NÃO BLOQUEIA
+      fetchProfile().then(setProfile);
+
     } catch (err: any) {
       setAuthError(err.message || 'Erro ao autenticar.');
-      setSession(null); setUser(null); setProfile(null);
+      setSession(null);
+      setUser(null);
+      setProfile(null);
     } finally {
       setLoading(false);
     }
@@ -83,21 +142,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     try {
-      console.log('clicou em encerrar sessão');
-      await supabase.auth.signOut({ scope: 'global' });
+      await supabase.auth.signOut();
     } catch (e) {
       console.error('signOut error:', e);
-    } finally {
-      setSession(null); setUser(null); setProfile(null);
-      setLoading(false);
-      localStorage.clear();
-      sessionStorage.clear();
-      window.location.replace('/login');
     }
+
+    // 🔥 RESET FORÇADO
+    setSession(null);
+    setUser(null);
+    setProfile(null);
+    setLoading(false);
+
+    window.location.href = '/login';
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, profile, loading, isAuthenticated: !!user, isRecoveryMode, authError, signIn, signOut, refreshProfile }}>
+    <AuthContext.Provider
+      value={{
+        session,
+        user,
+        profile,
+        loading,
+        isAuthenticated: !!user,
+        isRecoveryMode,
+        authError,
+        signIn,
+        signOut,
+        refreshProfile,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
