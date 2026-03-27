@@ -22,6 +22,7 @@ const ROTAS_FINANCEIRO = [
   '/financeiro/inadimplencia',
   '/financeiro/dre',
   '/dashboard',
+  '/financeiro/rentabilidade',
 ];
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles }) => {
