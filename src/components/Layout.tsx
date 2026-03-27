@@ -25,9 +25,12 @@ function ModalPerfil({ onClose, avatarUrl, onAvatarChange }: {
   avatarUrl: string | null;
   onAvatarChange: (url: string) => void;
 }) {
-  const { profile } = useAuth();
+  const { profile, refreshProfile } = useAuth();
   const [uploading, setUploading] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const [editandoNome, setEditandoNome] = useState(false);
+  const [novoNome, setNovoNome] = useState(profile?.nome ?? '');
+  const [salvandoNome, setSalvandoNome] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -61,6 +64,25 @@ function ModalPerfil({ onClose, avatarUrl, onAvatarChange }: {
       console.error(err);
     } finally {
       setUploading(false);
+    }
+  }
+
+  async function salvarNome() {
+    if (!novoNome.trim() || !profile?.id) return;
+    setSalvandoNome(true);
+    try {
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({ nome: novoNome.trim() })
+        .eq('id', profile.id);
+      if (!error) {
+        await refreshProfile();
+        setEditandoNome(false);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSalvandoNome(false);
     }
   }
 
@@ -116,7 +138,33 @@ function ModalPerfil({ onClose, avatarUrl, onAvatarChange }: {
           <div className="space-y-3">
             <div>
               <p className="text-xs font-semibold text-slate-400 uppercase mb-1">Nome</p>
-              <p className="text-sm font-semibold text-slate-800">{profile?.nome ?? "—"}</p>
+              {editandoNome ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={novoNome}
+                    onChange={e => setNovoNome(e.target.value)}
+                    className="flex-1 px-3 py-1.5 text-sm border border-slate-200 rounded-xl bg-slate-50 outline-none focus:ring-2 focus:ring-emerald-500"
+                    autoFocus
+                  />
+                  <button onClick={salvarNome} disabled={salvandoNome} style={{ cursor: 'pointer' }}
+                    className="px-3 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-700 transition disabled:opacity-60">
+                    {salvandoNome ? '...' : 'Salvar'}
+                  </button>
+                  <button onClick={() => { setEditandoNome(false); setNovoNome(profile?.nome ?? ''); }} style={{ cursor: 'pointer' }}
+                    className="px-3 py-1.5 border border-slate-200 text-slate-600 text-xs font-bold rounded-xl hover:bg-slate-50 transition">
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold text-slate-800">{profile?.nome ?? "—"}</p>
+                  <button onClick={() => setEditandoNome(true)} style={{ cursor: 'pointer' }}
+                    className="text-xs text-emerald-600 font-semibold hover:underline">
+                    Editar
+                  </button>
+                </div>
+              )}
             </div>
             <div>
               <p className="text-xs font-semibold text-slate-400 uppercase mb-1">E-mail</p>
@@ -169,6 +217,25 @@ function UserMenu() {
   }, []);
 
   const roleInfo = getRoleInfo(profile?.role, profile?.email);
+
+  async function salvarNome() {
+    if (!novoNome.trim() || !profile?.id) return;
+    setSalvandoNome(true);
+    try {
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({ nome: novoNome.trim() })
+        .eq('id', profile.id);
+      if (!error) {
+        await refreshProfile();
+        setEditandoNome(false);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSalvandoNome(false);
+    }
+  }
 
   const iniciais = profile?.nome
     ? profile.nome.split(" ").map((n: string) => n[0]).slice(0, 2).join("").toUpperCase()
