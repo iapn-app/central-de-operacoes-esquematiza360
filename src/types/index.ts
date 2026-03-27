@@ -58,7 +58,7 @@ export interface Cliente {
   status: 'Ativo' | 'Inativo';
 }
 
-export type UserRole = 'admin_master' | 'financeiro';
+export type UserRole = 'admin_master' | 'owner' | 'gerente' | 'financeiro';
 
 export interface UserProfile {
   id: string;
