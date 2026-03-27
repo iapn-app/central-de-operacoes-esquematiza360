@@ -5,12 +5,22 @@ import { PergunteCentral } from "./AssistantChat";
 import { useAuth } from "../hooks/useAuth";
 import { LogOut, User, ChevronDown, Shield } from "lucide-react";
 
+const EMAIL_ADMIN_MASTER = "mellaurj@gmail.com";
+
 const ROLE_LABELS: Record<string, { label: string; cor: string }> = {
   admin_master: { label: "Administrador",  cor: "bg-purple-100 text-purple-700" },
-  owner:        { label: "Dono",           cor: "bg-blue-100 text-blue-700" },
-  gerente:      { label: "Gerente",        cor: "bg-emerald-100 text-emerald-700" },
   financeiro:   { label: "Financeiro",     cor: "bg-amber-100 text-amber-700" },
 };
+
+function getRoleInfo(role: string | undefined, email: string | undefined) {
+  if (role === 'admin_master' && email === EMAIL_ADMIN_MASTER)
+    return { label: "Administrador Master", cor: "bg-purple-100 text-purple-700" };
+  if (role === 'admin_master')
+    return { label: "Diretor", cor: "bg-blue-100 text-blue-700" };
+  if (role === 'financeiro')
+    return { label: "Financeiro", cor: "bg-amber-100 text-amber-700" };
+  return { label: role ?? "Usuário", cor: "bg-slate-100 text-slate-600" };
+}
 
 function UserMenu() {
   const { profile, signOut } = useAuth();
@@ -25,7 +35,7 @@ function UserMenu() {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  const roleInfo = ROLE_LABELS[profile?.role ?? ""] ?? { label: profile?.role ?? "Usuário", cor: "bg-slate-100 text-slate-600" };
+  const roleInfo = getRoleInfo(profile?.role, profile?.email);
 
   // Iniciais do nome para o avatar
   const iniciais = profile?.nome
