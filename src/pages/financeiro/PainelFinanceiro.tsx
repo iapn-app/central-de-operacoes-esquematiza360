@@ -5,7 +5,7 @@ import {
   Shield, TrendingUp, DollarSign, Wallet, AlertTriangle,
   BarChart3, Building2, Zap, Calendar, Settings, X, Eye, EyeOff,
   Landmark, Layers, ChevronDown, ChevronUp,
-  TrendingDown, ChevronRight,
+  TrendingDown,
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -66,15 +66,6 @@ const ALL_FIN_KPIS = [
 ];
 
 const DEFAULT_FIN_KPIS = ["saldo", "faturamento", "custo", "lucro", "juros", "atraso"];
-
-const fluxoCaixaData = [
-  { mes: 'Out', receita: 0, despesa: 0, lucro: 0 },
-  { mes: 'Nov', receita: 0, despesa: 0, lucro: 0 },
-  { mes: 'Dez', receita: 0, despesa: 0, lucro: 0 },
-  { mes: 'Jan', receita: 0, despesa: 0, lucro: 0 },
-  { mes: 'Fev', receita: 0, despesa: 0, lucro: 0 },
-  { mes: 'Mar', receita: 0, despesa: 0, lucro: 0 },
-];
 
 // ─── Filtro de banco (dropdown no KPI Saldo Total) ─────────────────────────
 
@@ -247,7 +238,6 @@ function SecaoMultiEmpresa() {
         </div>
       }
     >
-      {/* KPIs consolidados topo */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5 pb-5 border-b border-slate-100">
         {[
           { label: "Faturamento Consolidado", icon: TrendingUp,   cor: "text-emerald-600", bg: "bg-emerald-50", value: "—" },
@@ -270,7 +260,6 @@ function SecaoMultiEmpresa() {
         })}
       </div>
 
-      {/* Accordion por empresa */}
       <div className="space-y-2 mb-5">
         {EMPRESAS.map(e => (
           <div key={e.id} className="rounded-xl border border-slate-200 overflow-hidden">
@@ -339,7 +328,6 @@ function SecaoMultiEmpresa() {
         ))}
       </div>
 
-      {/* Filtro + contas bancárias por empresa */}
       <div className="border-t border-slate-100 pt-5">
         <div className="flex items-center justify-between mb-3">
           <p className="text-sm font-semibold text-slate-700">Contas bancárias por empresa</p>
@@ -369,16 +357,48 @@ function SecaoMultiEmpresa() {
 export function PainelFinanceiro() {
   const [showCustomizer, setShowCustomizer] = useState(false);
   const [openLancamento, setOpenLancamento] = useState(false);
-  const [openPeriodo, setOpenPeriodo]       = useState(false);
-  const [periodo, setPeriodo]               = useState('2026-03');
-  const [empresas, setEmpresas]             = useState<any[]>([]);
-  const [contas, setContas]                 = useState<any[]>([]);
-  const [saving, setSaving]                 = useState(false);
-  const [filtroBanco, setFiltroBanco]       = useState<string>('Todos');
-  const [form, setForm] = useState({ descricao:'', valor:'', tipo:'income', categoria:'', vencimento:'', empresa_id:'', conta_id:'' });
+  const [openPeriodo, setOpenPeriodo] = useState(false);
+  const [periodo, setPeriodo] = useState('2026-03');
+  const [empresas, setEmpresas] = useState<any[]>([]);
+  const [contas, setContas] = useState<any[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [loadingKpis, setLoadingKpis] = useState(false);
+  const [filtroBanco, setFiltroBanco] = useState<string>('Todos');
+  const [allLancamentos, setAllLancamentos] = useState<any[]>([]);
+  const [kpis, setKpis] = useState({
+    saldo: 0,
+    faturamento: 0,
+    custo: 0,
+    lucro: 0,
+    juros: 0,
+    atraso: 0,
+  });
+  const [fluxoCaixaData, setFluxoCaixaData] = useState([
+    { mes: 'Out', receita: 0, despesa: 0, lucro: 0 },
+    { mes: 'Nov', receita: 0, despesa: 0, lucro: 0 },
+    { mes: 'Dez', receita: 0, despesa: 0, lucro: 0 },
+    { mes: 'Jan', receita: 0, despesa: 0, lucro: 0 },
+    { mes: 'Fev', receita: 0, despesa: 0, lucro: 0 },
+    { mes: 'Mar', receita: 0, despesa: 0, lucro: 0 },
+  ]);
+
+  const [form, setForm] = useState({
+    descricao: '',
+    valor: '',
+    tipo: 'income',
+    categoria: '',
+    vencimento: '',
+    empresa_id: '',
+    conta_id: ''
+  });
+
   const [visibleKpis, setVisibleKpis] = useState<string[]>(() => {
-    try { const saved = localStorage.getItem("financeiro_kpis"); return saved ? JSON.parse(saved) : DEFAULT_FIN_KPIS; }
-    catch { return DEFAULT_FIN_KPIS; }
+    try {
+      const saved = localStorage.getItem("financeiro_kpis");
+      return saved ? JSON.parse(saved) : DEFAULT_FIN_KPIS;
+    } catch {
+      return DEFAULT_FIN_KPIS;
+    }
   });
 
   useEffect(() => {
@@ -386,20 +406,247 @@ export function PainelFinanceiro() {
   }, []);
 
   useEffect(() => {
-    if (!form.empresa_id) { setContas([]); return; }
-    supabase.from('contas_bancarias').select('id, banco_nome, agencia, conta')
+    if (!form.empresa_id) {
+      setContas([]);
+      return;
+    }
+
+    supabase
+      .from('contas_bancarias')
+      .select('id, banco_nome, agencia, conta')
       .eq('empresa_id', form.empresa_id)
       .then(({ data }) => setContas(data ?? []));
   }, [form.empresa_id]);
 
+  const fmt = (v: number) =>
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+
+  function getContaNumero(item: any) {
+    return (
+      item?.conta ||
+      item?.conta_numero ||
+      item?.numero_conta ||
+      item?.bank_account ||
+      item?.conta_bancaria ||
+      ''
+    );
+  }
+
+  function getItemValor(item: any) {
+    return Number(
+      item?.valor ??
+      item?.amount ??
+      item?.total ??
+      item?.value ??
+      0
+    );
+  }
+
+  function getItemTipo(item: any) {
+    return String(
+      item?.tipo ??
+      item?.type ??
+      item?.entry_type ??
+      ''
+    ).toLowerCase().trim();
+  }
+
+  function isReceita(item: any) {
+    const tipo = getItemTipo(item);
+    return ['income', 'receita', 'entrada', 'receivable', 'credito', 'crédito'].includes(tipo);
+  }
+
+  function isDespesa(item: any) {
+    const tipo = getItemTipo(item);
+    return ['expense', 'despesa', 'saida', 'saída', 'payable', 'debito', 'débito'].includes(tipo);
+  }
+
+  function getItemDate(item: any) {
+    return (
+      item?.vencimento ||
+      item?.due_date ||
+      item?.data ||
+      item?.date ||
+      item?.created_at ||
+      null
+    );
+  }
+
+  function getMesesDoPeriodoSelecionado(periodoSelecionado: string) {
+    const [anoStr, mesStr] = periodoSelecionado.split('-');
+    const ano = Number(anoStr);
+    const mes = Number(mesStr);
+
+    const meses: { key: string; mes: string; receita: number; despesa: number; lucro: number }[] = [];
+
+    for (let offset = 5; offset >= 0; offset -= 1) {
+      const data = new Date(ano, mes - 1 - offset, 1);
+      const key = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`;
+      const mesLabel = data.toLocaleDateString('pt-BR', { month: 'short' })
+        .replace('.', '')
+        .replace(/^\w/, c => c.toUpperCase());
+
+      meses.push({
+        key,
+        mes: mesLabel,
+        receita: 0,
+        despesa: 0,
+        lucro: 0,
+      });
+    }
+
+    return meses;
+  }
+
+  async function loadFinanceData() {
+    try {
+      setLoadingKpis(true);
+
+      let lancamentos: any[] = [];
+
+      if (financeService?.getFinancialData) {
+        const result = await financeService.getFinancialData();
+
+        if (Array.isArray(result)) {
+          lancamentos = result;
+        } else if (Array.isArray(result?.data)) {
+          lancamentos = result.data;
+        } else if (Array.isArray(result?.financial_invoices)) {
+          lancamentos = result.financial_invoices;
+        } else if (Array.isArray(result?.invoices)) {
+          lancamentos = result.invoices;
+        } else if (Array.isArray(result?.entries)) {
+          lancamentos = result.entries;
+        }
+      }
+
+      if (!lancamentos.length) {
+        const { data, error } = await supabase
+          .from('financial_invoices')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        lancamentos = data ?? [];
+      }
+
+      setAllLancamentos(lancamentos);
+
+      const lancamentosFiltradosPorConta = filtroBanco === 'Todos'
+        ? lancamentos
+        : lancamentos.filter(item => String(getContaNumero(item)) === String(filtroBanco));
+
+      let faturamento = 0;
+      let custo = 0;
+      let atraso = 0;
+
+      lancamentosFiltradosPorConta.forEach((item) => {
+        const valor = getItemValor(item);
+
+        if (isReceita(item)) faturamento += valor;
+        if (isDespesa(item)) custo += valor;
+
+        const status = String(item?.status ?? '').toLowerCase();
+        if (status.includes('atras')) {
+          atraso += valor;
+        }
+      });
+
+      const saldo = faturamento - custo;
+      const lucro = faturamento - custo;
+
+      setKpis({
+        saldo,
+        faturamento,
+        custo,
+        lucro,
+        juros: 0,
+        atraso,
+      });
+
+      const mesesBase = getMesesDoPeriodoSelecionado(periodo);
+
+      const agrupado = mesesBase.map((mesRef) => {
+        const itensDoMes = lancamentos.filter((item) => {
+          const dataItem = getItemDate(item);
+          if (!dataItem) return false;
+
+          const d = new Date(dataItem);
+          if (Number.isNaN(d.getTime())) return false;
+
+          const chave = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+          return chave === mesRef.key;
+        });
+
+        let receita = 0;
+        let despesa = 0;
+
+        itensDoMes.forEach((item) => {
+          const valor = getItemValor(item);
+          if (isReceita(item)) receita += valor;
+          if (isDespesa(item)) despesa += valor;
+        });
+
+        return {
+          mes: mesRef.mes,
+          receita,
+          despesa,
+          lucro: receita - despesa,
+        };
+      });
+
+      setFluxoCaixaData(agrupado);
+    } catch (error) {
+      console.error('Erro ao carregar dados financeiros:', error);
+
+      setKpis({
+        saldo: 0,
+        faturamento: 0,
+        custo: 0,
+        lucro: 0,
+        juros: 0,
+        atraso: 0,
+      });
+
+      setFluxoCaixaData([
+        { mes: 'Out', receita: 0, despesa: 0, lucro: 0 },
+        { mes: 'Nov', receita: 0, despesa: 0, lucro: 0 },
+        { mes: 'Dez', receita: 0, despesa: 0, lucro: 0 },
+        { mes: 'Jan', receita: 0, despesa: 0, lucro: 0 },
+        { mes: 'Fev', receita: 0, despesa: 0, lucro: 0 },
+        { mes: 'Mar', receita: 0, despesa: 0, lucro: 0 },
+      ]);
+    } finally {
+      setLoadingKpis(false);
+    }
+  }
+
+  useEffect(() => {
+    loadFinanceData();
+  }, [periodo, filtroBanco]);
+
   async function salvarLancamento() {
     if (!form.descricao || !form.valor || !form.empresa_id || !form.conta_id) return;
+
     setSaving(true);
+
     try {
       await financeService.createFinancialEntry(form);
       setOpenLancamento(false);
-      setForm({ descricao:'', valor:'', tipo:'income', categoria:'', vencimento:'', empresa_id:'', conta_id:'' });
-    } finally { setSaving(false); }
+      setForm({
+        descricao: '',
+        valor: '',
+        tipo: 'income',
+        categoria: '',
+        vencimento: '',
+        empresa_id: '',
+        conta_id: ''
+      });
+
+      await loadFinanceData();
+    } finally {
+      setSaving(false);
+    }
   }
 
   function toggleKpi(id: string) {
@@ -410,20 +657,23 @@ export function PainelFinanceiro() {
     });
   }
 
-  const fmt = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+  const quantidadeLancamentos = filtroBanco === 'Todos'
+    ? allLancamentos.length
+    : allLancamentos.filter(item => String(getContaNumero(item)) === String(filtroBanco)).length;
 
-  // KPIs filtrados por banco (quando dados reais chegarem, filtrar aqui)
-  const subtitleBanco = filtroBanco === 'Todos'
-    ? 'Aguardando dados reais'
-    : `Conta ${filtroBanco} — aguardando dados reais`;
+  const subtitleBanco = loadingKpis
+    ? 'Carregando dados...'
+    : filtroBanco === 'Todos'
+      ? `${quantidadeLancamentos} lançamentos carregados`
+      : `Conta ${filtroBanco} — ${quantidadeLancamentos} lançamentos`;
 
   const allKpiCards = [
-    { id: "saldo",       title: "Saldo Total",        value: fmt(0), subtitle: subtitleBanco,            icon: Wallet,        colorClass: "text-blue-500" },
-    { id: "faturamento", title: "Faturamento Mensal", value: fmt(0), subtitle: subtitleBanco,            icon: TrendingUp,    colorClass: "text-emerald-500" },
-    { id: "custo",       title: "Custo Operacional",  value: fmt(0), subtitle: subtitleBanco,            icon: DollarSign,    colorClass: "text-rose-500" },
-    { id: "lucro",       title: "Lucro Estimado",     value: fmt(0), subtitle: subtitleBanco,            icon: BarChart3,     colorClass: "text-purple-500" },
-    { id: "juros",       title: "Juros Evitados",     value: fmt(0), subtitle: "Aguardando dados reais", icon: Shield,        colorClass: "text-teal-500" },
-    { id: "atraso",      title: "Em Atraso",          value: fmt(0), subtitle: subtitleBanco,            icon: AlertTriangle, colorClass: "text-amber-500" },
+    { id: "saldo",       title: "Saldo Total",        value: fmt(kpis.saldo),       subtitle: subtitleBanco,                                  icon: Wallet,        colorClass: "text-blue-500" },
+    { id: "faturamento", title: "Faturamento Mensal", value: fmt(kpis.faturamento), subtitle: loadingKpis ? 'Carregando dados...' : subtitleBanco, icon: TrendingUp,    colorClass: "text-emerald-500" },
+    { id: "custo",       title: "Custo Operacional",  value: fmt(kpis.custo),       subtitle: loadingKpis ? 'Carregando dados...' : subtitleBanco, icon: DollarSign,    colorClass: "text-rose-500" },
+    { id: "lucro",       title: "Lucro Estimado",     value: fmt(kpis.lucro),       subtitle: loadingKpis ? 'Carregando dados...' : subtitleBanco, icon: BarChart3,     colorClass: "text-purple-500" },
+    { id: "juros",       title: "Juros Evitados",     value: fmt(kpis.juros),       subtitle: loadingKpis ? 'Carregando dados...' : 'Cálculo inicial', icon: Shield,        colorClass: "text-teal-500" },
+    { id: "atraso",      title: "Em Atraso",          value: fmt(kpis.atraso),      subtitle: loadingKpis ? 'Carregando dados...' : subtitleBanco, icon: AlertTriangle, colorClass: "text-amber-500" },
   ];
 
   const visibleCards = allKpiCards.filter(k => visibleKpis.includes(k.id));
@@ -440,30 +690,37 @@ export function PainelFinanceiro() {
               <ActionButton variant="secondary" onClick={() => setOpenPeriodo(!openPeriodo)}>
                 <Calendar className="w-4 h-4" />
                 {['2026-01','2026-02','2026-03','2026-04','2026-05','2026-06'].find(m => m === periodo)
-                  ? new Date(periodo+'-15').toLocaleDateString('pt-BR',{month:'long',year:'numeric'})
+                  ? new Date(periodo + '-15').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
                   : 'Março 2026'}
               </ActionButton>
+
               {openPeriodo && (
                 <div className="absolute top-full mt-2 right-0 bg-white border border-gray-100 rounded-xl shadow-lg z-50 min-w-[160px] overflow-hidden">
                   {['2026-01','2026-02','2026-03','2026-04','2026-05','2026-06'].map(m => (
-                    <button key={m} onClick={() => { setPeriodo(m); setOpenPeriodo(false); }}
-                      className={"w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition " + (periodo===m ? "font-bold text-emerald-700 bg-emerald-50" : "text-gray-700")}>
-                      {new Date(m+'-15').toLocaleDateString('pt-BR',{month:'long',year:'numeric'})}
+                    <button
+                      key={m}
+                      onClick={() => { setPeriodo(m); setOpenPeriodo(false); }}
+                      className={"w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition " + (periodo === m ? "font-bold text-emerald-700 bg-emerald-50" : "text-gray-700")}
+                    >
+                      {new Date(m + '-15').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
                     </button>
                   ))}
                 </div>
               )}
             </div>
-            <button onClick={() => setShowCustomizer(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 active:scale-95 transition">
+
+            <button
+              onClick={() => setShowCustomizer(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 active:scale-95 transition"
+            >
               <Settings className="w-4 h-4" /> Personalizar KPIs
             </button>
+
             <ActionButton onClick={() => setOpenLancamento(true)}>+ Novo Lançamento</ActionButton>
           </>
         }
       />
 
-      {/* Banner */}
       <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl p-5 flex flex-col md:flex-row items-start md:items-center gap-4">
         <div className="p-3 bg-emerald-500 rounded-xl shrink-0"><Building2 className="w-6 h-6 text-white" /></div>
         <div className="flex-1 min-w-0">
@@ -476,7 +733,6 @@ export function PainelFinanceiro() {
         <ActionButton className="shrink-0 whitespace-nowrap"><Zap className="w-4 h-4" /> Conectar banco</ActionButton>
       </div>
 
-      {/* KPI Cards */}
       {visibleCards.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
           {visibleCards.map((card) =>
@@ -489,7 +745,14 @@ export function PainelFinanceiro() {
                 subtitle={card.subtitle}
               />
             ) : (
-              <KpiCard key={card.id} title={card.title} value={card.value} subtitle={card.subtitle} icon={card.icon} colorClass={card.colorClass} />
+              <KpiCard
+                key={card.id}
+                title={card.title}
+                value={card.value}
+                subtitle={card.subtitle}
+                icon={card.icon}
+                colorClass={card.colorClass}
+              />
             )
           )}
         </div>
@@ -501,10 +764,8 @@ export function PainelFinanceiro() {
         </div>
       )}
 
-      {/* Multi-empresa */}
       <SecaoMultiEmpresa />
 
-      {/* DRE */}
       <SectionCard
         title="DRE Resumido — Receita vs Custo vs Lucro"
         action={
@@ -520,66 +781,113 @@ export function PainelFinanceiro() {
             <BarChart data={fluxoCaixaData} barGap={4} barCategoryGap="30%">
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
               <XAxis dataKey="mes" tick={{ fontSize: 12, fontWeight: 600, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-              <YAxis tickFormatter={v => `R$${(v/1000).toFixed(0)}k`} tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+              <YAxis tickFormatter={v => `R$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
               <Tooltip />
-              <Bar dataKey="receita" name="Receita" fill="#10b981" radius={[4,4,0,0]} />
-              <Bar dataKey="despesa" name="Custo"   fill="#fb7185" radius={[4,4,0,0]} />
-              <Bar dataKey="lucro"   name="Lucro"   fill="#3b82f6" radius={[4,4,0,0]} />
+              <Bar dataKey="receita" name="Receita" fill="#10b981" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="despesa" name="Custo" fill="#fb7185" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="lucro" name="Lucro" fill="#3b82f6" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
-        <p className="text-center text-xs text-slate-400 mt-4">Aguardando dados reais para exibir o gráfico.</p>
+        <p className="text-center text-xs text-slate-400 mt-4">
+          {loadingKpis ? 'Carregando dados reais do gráfico...' : 'Gráfico alimentado com dados reais do período.'}
+        </p>
       </SectionCard>
 
       <div className="rounded-2xl border border-dashed border-emerald-200 bg-emerald-50 p-6 text-center">
         <p className="text-emerald-700 font-semibold text-sm">
-          🚀 Sistema pronto para implantação. Conecte os dados reais para ativar todos os indicadores financeiros.
+          🚀 Sistema conectado aos dados financeiros. Próximo passo: inadimplência, juros, fluxo de caixa real e DRE completo.
         </p>
       </div>
 
-      {showCustomizer && <KpiCustomizerPanel visible={visibleKpis} onToggle={toggleKpi} onClose={() => setShowCustomizer(false)} />}
+      {showCustomizer && (
+        <KpiCustomizerPanel
+          visible={visibleKpis}
+          onToggle={toggleKpi}
+          onClose={() => setShowCustomizer(false)}
+        />
+      )}
 
       {openLancamento && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
           <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-100 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-6 text-gray-900 tracking-tight">Novo Lançamento</h2>
+
             <div className="space-y-4">
-              <input type="text" placeholder="Descrição *"
+              <input
+                type="text"
+                placeholder="Descrição *"
                 className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
-                value={form.descricao} onChange={e => setForm({...form, descricao: e.target.value})} />
-              <input type="number" placeholder="Valor (R$) *" min="0" step="0.01"
+                value={form.descricao}
+                onChange={e => setForm({ ...form, descricao: e.target.value })}
+              />
+
+              <input
+                type="number"
+                placeholder="Valor (R$) *"
+                min="0"
+                step="0.01"
                 className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
-                value={form.valor} onChange={e => setForm({...form, valor: e.target.value})} />
-              <select className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
-                value={form.tipo} onChange={e => setForm({...form, tipo: e.target.value})}>
+                value={form.valor}
+                onChange={e => setForm({ ...form, valor: e.target.value })}
+              />
+
+              <select
+                className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                value={form.tipo}
+                onChange={e => setForm({ ...form, tipo: e.target.value })}
+              >
                 <option value="income">Entrada (Receita)</option>
                 <option value="expense">Saída (Despesa)</option>
               </select>
-              <select className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
-                value={form.categoria} onChange={e => setForm({...form, categoria: e.target.value})}>
+
+              <select
+                className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                value={form.categoria}
+                onChange={e => setForm({ ...form, categoria: e.target.value })}
+              >
                 <option value="">Selecione categoria</option>
-                {['Serviço Prestado','Recebimento de Cliente','Folha de Pagamento','Encargos (INSS/FGTS)','Fornecedores','Impostos','Frota','Aluguel','TI','Outros'].map(cat =>
-                  <option key={cat} value={cat}>{cat}</option>)}
+                {['Serviço Prestado', 'Recebimento de Cliente', 'Folha de Pagamento', 'Encargos (INSS/FGTS)', 'Fornecedores', 'Impostos', 'Frota', 'Aluguel', 'TI', 'Outros'].map(cat =>
+                  <option key={cat} value={cat}>{cat}</option>
+                )}
               </select>
-              <select className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
-                value={form.empresa_id} onChange={e => setForm({...form, empresa_id: e.target.value, conta_id: ''})}>
+
+              <select
+                className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                value={form.empresa_id}
+                onChange={e => setForm({ ...form, empresa_id: e.target.value, conta_id: '' })}
+              >
                 <option value="">Empresa *</option>
                 {empresas.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
               </select>
-              <select className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
-                value={form.conta_id} disabled={!form.empresa_id} onChange={e => setForm({...form, conta_id: e.target.value})}>
+
+              <select
+                className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                value={form.conta_id}
+                disabled={!form.empresa_id}
+                onChange={e => setForm({ ...form, conta_id: e.target.value })}
+              >
                 <option value="">Conta bancária *</option>
                 {contas.map(c => <option key={c.id} value={c.id}>{c.banco_nome} Ag {c.agencia} — {c.conta}</option>)}
               </select>
+
               <div>
                 <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Vencimento</label>
-                <input type="date" className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
-                  value={form.vencimento} onChange={e => setForm({...form, vencimento: e.target.value})} />
+                <input
+                  type="date"
+                  className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                  value={form.vencimento}
+                  onChange={e => setForm({ ...form, vencimento: e.target.value })}
+                />
               </div>
             </div>
+
             <div className="flex justify-end gap-3 mt-8">
               <ActionButton variant="secondary" onClick={() => setOpenLancamento(false)}>Cancelar</ActionButton>
-              <ActionButton onClick={salvarLancamento} disabled={saving || !form.descricao || !form.valor || !form.empresa_id || !form.conta_id}>
+              <ActionButton
+                onClick={salvarLancamento}
+                disabled={saving || !form.descricao || !form.valor || !form.empresa_id || !form.conta_id}
+              >
                 {saving ? 'Salvando...' : 'Salvar Lançamento'}
               </ActionButton>
             </div>
