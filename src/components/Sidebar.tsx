@@ -94,6 +94,7 @@ function filtrarModulosPorRole(role: string | undefined, email: string | undefin
         if (role === 'financeiro') return MODULOS_FINANCEIRO.includes(item.id);
         // Admin master real (Mellau): acesso total + respeita toggles
         if (isAdminMaster) {
+          if (MODULOS_SEMPRE_VISIVEIS.includes(item.id)) return true;
           if (!temConfiguracoes) return true;
           return modulosAtivos[item.id] !== false;
         }
