@@ -83,7 +83,7 @@ function KpiCustomizerPanel({ kpis, visible, onToggle, onClose, title }: {
 }) {
   return (
     <>
-      <div className="fixed inset-0 bg-black/20 z-40" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/20 z-30" onClick={onClose} />
       <div className="fixed right-0 top-0 h-full w-72 bg-white border-l border-slate-200 shadow-2xl z-50 flex flex-col">
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
           <div>
