@@ -25,7 +25,7 @@ function ModalPerfil({ onClose, avatarUrl, onAvatarChange }: {
   avatarUrl: string | null;
   onAvatarChange: (url: string) => void;
 }) {
-  const { profile, refreshProfile } = useAuth();
+  const { profile } = useAuth();
   const [uploading, setUploading] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [editandoNome, setEditandoNome] = useState(false);
@@ -75,12 +75,17 @@ function ModalPerfil({ onClose, avatarUrl, onAvatarChange }: {
         .from('user_profiles')
         .update({ nome: novoNome.trim() })
         .eq('id', profile.id);
-      if (!error) {
-        await refreshProfile();
-        setEditandoNome(false);
+      if (error) {
+        console.error('Erro ao salvar nome:', error.message);
+        alert('Erro ao salvar: ' + error.message);
+        return;
       }
-    } catch (e) {
+      setEditandoNome(false);
+      // Força reload da página para atualizar o nome em todo o sistema
+      window.location.reload();
+    } catch (e: any) {
       console.error(e);
+      alert('Erro inesperado: ' + e.message);
     } finally {
       setSalvandoNome(false);
     }
@@ -226,12 +231,17 @@ function UserMenu() {
         .from('user_profiles')
         .update({ nome: novoNome.trim() })
         .eq('id', profile.id);
-      if (!error) {
-        await refreshProfile();
-        setEditandoNome(false);
+      if (error) {
+        console.error('Erro ao salvar nome:', error.message);
+        alert('Erro ao salvar: ' + error.message);
+        return;
       }
-    } catch (e) {
+      setEditandoNome(false);
+      // Força reload da página para atualizar o nome em todo o sistema
+      window.location.reload();
+    } catch (e: any) {
       console.error(e);
+      alert('Erro inesperado: ' + e.message);
     } finally {
       setSalvandoNome(false);
     }
