@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useAuth } from "../hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import {
   Activity, AlertTriangle, Building2, Car, CheckCircle2, Clock3,
@@ -576,8 +577,10 @@ export default function Dashboard() {
     }).catch(() => {});
   }, []);
 
+  const { profile } = useAuth();
   const hora = new Date().getHours();
   const saudacao = hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
+  const primeiroNome = profile?.nome ? profile.nome.split(" ")[0] : "Grupo Esquematiza";
 
   return (
     <div className="min-h-[calc(100vh-80px)] bg-slate-50">
@@ -591,7 +594,7 @@ export default function Dashboard() {
                 <Zap className="w-3 h-3" /> Central Operacional
               </span>
             </div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">{saudacao}, Grupo Esquematiza 👋</h1>
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">{saudacao}, {primeiroNome}! 👋</h1>
             <p className="mt-1 text-sm text-slate-500">
               {new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
             </p>
