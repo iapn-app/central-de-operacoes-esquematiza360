@@ -82,18 +82,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
-    setLoading(true);
     try {
+      console.log('clicou em encerrar sessão');
       await supabase.auth.signOut({ scope: 'global' });
-      localStorage.removeItem('esquematiza-auth');
-      sessionStorage.clear();
     } catch (e) {
       console.error('signOut error:', e);
     } finally {
       setSession(null); setUser(null); setProfile(null);
       setLoading(false);
-      // Força navegação para login independente do estado do Router
-      window.location.href = '/login';
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.replace('/login');
     }
   };
 
