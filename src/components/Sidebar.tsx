@@ -49,7 +49,8 @@ const ALL_MODULES: SidebarGroup[] = [
       { id: "caixa-bancos",   label: "Caixa e Bancos",       route: "/financeiro/caixa-bancos",  icon: "Landmark" },
       { id: "fluxo-caixa",    label: "Fluxo de Caixa",       route: "/financeiro/fluxo-caixa",   icon: "BarChart3" },
       { id: "dre",            label: "DRE Gerencial",        route: "/financeiro/dre",           icon: "PieChart" },
-      { id: "relatorios-fin", label: "Relatórios",           route: "/financeiro/relatorios",    icon: "FileText" },
+      { id: "relatorios-fin",   label: "Relatórios",           route: "/financeiro/relatorios",    icon: "FileText" },
+      { id: "rentabilidade",      label: "Rentabilidade",        route: "/financeiro/rentabilidade", icon: "TrendingUp" },
     ],
   },
   {
