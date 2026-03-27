@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
-import { financeService } from '../../services/financeService';
+import financeService from '../../services/financeService';
 import {
   Shield, TrendingUp, DollarSign, Wallet, AlertTriangle,
   BarChart3, Building2, Zap, Calendar, Settings, X, Eye, EyeOff,
@@ -17,13 +17,13 @@ import {
 // ─── Empresas do grupo ─────────────────────────────────────────────────────
 
 const EMPRESAS = [
-  { id: "servicos",     nome: "Serviços de Monitoramento",   cnpj: "29.724.046/0001-35", cor: "#EC6625", inicial: "S",
+  { id: "servicos", nome: "Serviços de Monitoramento", cnpj: "29.724.046/0001-35", cor: "#EC6625", inicial: "S",
     contas: ["Itaú Ag.7157 — 0099842-3", "Bradesco Ag.1804 — 0007997-9"] },
-  { id: "vigilancia",   nome: "Vigilância e Segurança",      cnpj: "35.201.432/0001-45", cor: "#0f172a", inicial: "V",
+  { id: "vigilancia", nome: "Vigilância e Segurança", cnpj: "35.201.432/0001-45", cor: "#0f172a", inicial: "V",
     contas: ["Itaú Ag.7157 — 0099812-6", "Itaú Ag.7157 — 0029170-4", "Bradesco Ag.1804 — 0084935-9", "Inter Ag.0001-9 — 4596447-5"] },
-  { id: "patrimonial",  nome: "Patrimonial e Eventos",       cnpj: "47.116.185/0001-68", cor: "#7c3aed", inicial: "P",
+  { id: "patrimonial", nome: "Patrimonial e Eventos", cnpj: "47.116.185/0001-68", cor: "#7c3aed", inicial: "P",
     contas: ["Itaú Ag.7157 — 0099813-4"] },
-  { id: "prevencao",    nome: "Prevenção de Perdas",         cnpj: "52.605.214/0001-95", cor: "#0369a1", inicial: "P",
+  { id: "prevencao", nome: "Prevenção de Perdas", cnpj: "52.605.214/0001-95", cor: "#0369a1", inicial: "P",
     contas: ["Itaú Ag.309 — 0099120-6", "Bradesco Ag.1804 — 0103834-6"] },
   { id: "inteligencia", nome: "Inteligência e Treinamentos", cnpj: "59.283.344/0001-06", cor: "#047857", inicial: "I",
     contas: ["Itaú Ag.309 — 0098959-8"] },
@@ -32,16 +32,16 @@ const EMPRESAS = [
 // ─── Contas bancárias reais ────────────────────────────────────────────────
 
 const CONTAS_BANCARIAS = [
-  { empresa: "Serviços",     razao: "ESQUEMATIZA SERVIÇOS DE MONITORAMENTO LTDA",   cnpj: "29.724.046/0001-35", agencia: "7157",   conta: "0099842-3",  banco: "Itaú",     cor: "#EC6625" },
-  { empresa: "Inteligência", razao: "ESQUEMATIZA INTELIGENCIA E TREINAMENTOS LTDA", cnpj: "59.283.344/0001-06", agencia: "309",    conta: "0098959-8",  banco: "Itaú",     cor: "#EC6625" },
-  { empresa: "Patrimonial",  razao: "ESQUEMATIZA PATRIMONIAL E EVENTOS LTDA",       cnpj: "47.116.185/0001-68", agencia: "7157",   conta: "0099813-4",  banco: "Itaú",     cor: "#EC6625" },
-  { empresa: "Prevenção",    razao: "ESQUEMATIZA PREVENCAO DE PERDAS",              cnpj: "52.605.214/0001-95", agencia: "309",    conta: "0099120-6",  banco: "Itaú",     cor: "#EC6625" },
-  { empresa: "Vigilância",   razao: "ESQUEMATIZA VIGILANCIA E SEGURANCA LTDA",      cnpj: "35.201.432/0001-45", agencia: "7157",   conta: "0099812-6",  banco: "Itaú",     cor: "#EC6625" },
-  { empresa: "Vigilância",   razao: "ESQUEMATIZA VIGILANCIA E SEGURANCA LTDA",      cnpj: "35.201.432/0001-45", agencia: "7157",   conta: "0029170-4",  banco: "Itaú",     cor: "#EC6625" },
-  { empresa: "Vigilância",   razao: "ESQUEMATIZA VIGILANCIA E SEGURANCA LTDA",      cnpj: "35.201.432/0001-45", agencia: "1804",   conta: "0084935-9",  banco: "Bradesco", cor: "#CC0000" },
-  { empresa: "Prevenção",    razao: "ESQUEMATIZA PREVENCAO DE PERDAS",              cnpj: "52.605.214/0001-95", agencia: "1804",   conta: "0103834-6",  banco: "Bradesco", cor: "#CC0000" },
-  { empresa: "Serviços",     razao: "ESQUEMATIZA SERVIÇOS DE MONITORAMENTO LTDA",   cnpj: "29.724.046/0001-35", agencia: "1804",   conta: "0007997-9",  banco: "Bradesco", cor: "#CC0000" },
-  { empresa: "Vigilância",   razao: "ESQUEMATIZA VIGILANCIA E SEGURANCA LTDA",      cnpj: "35.201.432/0001-45", agencia: "0001-9", conta: "4596447-5",  banco: "Inter",    cor: "#FF7A00" },
+  { empresa: "Serviços", razao: "ESQUEMATIZA SERVIÇOS DE MONITORAMENTO LTDA", cnpj: "29.724.046/0001-35", agencia: "7157", conta: "0099842-3", banco: "Itaú", cor: "#EC6625" },
+  { empresa: "Inteligência", razao: "ESQUEMATIZA INTELIGENCIA E TREINAMENTOS LTDA", cnpj: "59.283.344/0001-06", agencia: "309", conta: "0098959-8", banco: "Itaú", cor: "#EC6625" },
+  { empresa: "Patrimonial", razao: "ESQUEMATIZA PATRIMONIAL E EVENTOS LTDA", cnpj: "47.116.185/0001-68", agencia: "7157", conta: "0099813-4", banco: "Itaú", cor: "#EC6625" },
+  { empresa: "Prevenção", razao: "ESQUEMATIZA PREVENCAO DE PERDAS", cnpj: "52.605.214/0001-95", agencia: "309", conta: "0099120-6", banco: "Itaú", cor: "#EC6625" },
+  { empresa: "Vigilância", razao: "ESQUEMATIZA VIGILANCIA E SEGURANCA LTDA", cnpj: "35.201.432/0001-45", agencia: "7157", conta: "0099812-6", banco: "Itaú", cor: "#EC6625" },
+  { empresa: "Vigilância", razao: "ESQUEMATIZA VIGILANCIA E SEGURANCA LTDA", cnpj: "35.201.432/0001-45", agencia: "7157", conta: "0029170-4", banco: "Itaú", cor: "#EC6625" },
+  { empresa: "Vigilância", razao: "ESQUEMATIZA VIGILANCIA E SEGURANCA LTDA", cnpj: "35.201.432/0001-45", agencia: "1804", conta: "0084935-9", banco: "Bradesco", cor: "#CC0000" },
+  { empresa: "Prevenção", razao: "ESQUEMATIZA PREVENCAO DE PERDAS", cnpj: "52.605.214/0001-95", agencia: "1804", conta: "0103834-6", banco: "Bradesco", cor: "#CC0000" },
+  { empresa: "Serviços", razao: "ESQUEMATIZA SERVIÇOS DE MONITORAMENTO LTDA", cnpj: "29.724.046/0001-35", agencia: "1804", conta: "0007997-9", banco: "Bradesco", cor: "#CC0000" },
+  { empresa: "Vigilância", razao: "ESQUEMATIZA VIGILANCIA E SEGURANCA LTDA", cnpj: "35.201.432/0001-45", agencia: "0001-9", conta: "4596447-5", banco: "Inter", cor: "#FF7A00" },
 ];
 
 const CONTAS_DISPONIVEIS = [
@@ -57,17 +57,17 @@ const CONTAS_DISPONIVEIS = [
 // ─── KPIs ──────────────────────────────────────────────────────────────────
 
 const ALL_FIN_KPIS = [
-  { id: "saldo",       title: "Saldo Total",        icon: Wallet,        colorClass: "text-blue-500" },
-  { id: "faturamento", title: "Faturamento Mensal", icon: TrendingUp,    colorClass: "text-emerald-500" },
-  { id: "custo",       title: "Custo Operacional",  icon: DollarSign,    colorClass: "text-rose-500" },
-  { id: "lucro",       title: "Lucro Estimado",     icon: BarChart3,     colorClass: "text-purple-500" },
-  { id: "juros",       title: "Juros Evitados",     icon: Shield,        colorClass: "text-teal-500" },
-  { id: "atraso",      title: "Em Atraso",          icon: AlertTriangle, colorClass: "text-amber-500" },
+  { id: "saldo", title: "Saldo Total", icon: Wallet, colorClass: "text-blue-500" },
+  { id: "faturamento", title: "Faturamento Mensal", icon: TrendingUp, colorClass: "text-emerald-500" },
+  { id: "custo", title: "Custo Operacional", icon: DollarSign, colorClass: "text-rose-500" },
+  { id: "lucro", title: "Lucro Estimado", icon: BarChart3, colorClass: "text-purple-500" },
+  { id: "juros", title: "Juros Evitados", icon: Shield, colorClass: "text-teal-500" },
+  { id: "atraso", title: "Em Atraso", icon: AlertTriangle, colorClass: "text-amber-500" },
 ];
 
 const DEFAULT_FIN_KPIS = ["saldo", "faturamento", "custo", "lucro", "juros", "atraso"];
 
-// ─── Filtro de banco (dropdown no KPI Saldo Total) ─────────────────────────
+// ─── Filtro de banco ───────────────────────────────────────────────────────
 
 function FiltroBanco({ conta, onChange }: { conta: string; onChange: (c: string) => void }) {
   const [open, setOpen] = useState(false);
@@ -119,8 +119,6 @@ function FiltroBanco({ conta, onChange }: { conta: string; onChange: (c: string)
   );
 }
 
-// ─── KPI Saldo Total com filtro embutido ───────────────────────────────────
-
 function KpiSaldoTotal({ conta, onChangeConta, value, subtitle }: {
   conta: string;
   onChangeConta: (c: string) => void;
@@ -156,8 +154,6 @@ function KpiSaldoTotal({ conta, onChangeConta, value, subtitle }: {
   );
 }
 
-// ─── Painel KPIs ──────────────────────────────────────────────────────────
-
 function KpiCustomizerPanel({ visible, onToggle, onClose }: {
   visible: string[]; onToggle: (id: string) => void; onClose: () => void;
 }) {
@@ -174,7 +170,9 @@ function KpiCustomizerPanel({ visible, onToggle, onClose }: {
             const active = visible.includes(kpi.id);
             const Icon = kpi.icon;
             return (
-              <button key={kpi.id} onClick={() => onToggle(kpi.id)}
+              <button
+                key={kpi.id}
+                onClick={() => onToggle(kpi.id)}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition text-left ${active ? "bg-emerald-50 border-emerald-200" : "bg-slate-50 border-slate-200 opacity-60"}`}
               >
                 <div className={`flex h-9 w-9 items-center justify-center rounded-xl flex-shrink-0 ${active ? "bg-emerald-100" : "bg-slate-200"}`}>
@@ -193,8 +191,6 @@ function KpiCustomizerPanel({ visible, onToggle, onClose }: {
     </>
   );
 }
-
-// ─── Card conta bancária ───────────────────────────────────────────────────
 
 function ContaBancariaCard({ conta }: { conta: typeof CONTAS_BANCARIAS[0] }) {
   return (
@@ -218,8 +214,6 @@ function ContaBancariaCard({ conta }: { conta: typeof CONTAS_BANCARIAS[0] }) {
   );
 }
 
-// ─── Seção Multi-empresa ───────────────────────────────────────────────────
-
 function SecaoMultiEmpresa() {
   const [expandida, setExpandida] = useState<string | null>(null);
   const [filtroEmpresa, setFiltroEmpresa] = useState<string>("todas");
@@ -240,10 +234,10 @@ function SecaoMultiEmpresa() {
     >
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5 pb-5 border-b border-slate-100">
         {[
-          { label: "Faturamento Consolidado", icon: TrendingUp,   cor: "text-emerald-600", bg: "bg-emerald-50", value: "—" },
-          { label: "Custo Consolidado",        icon: TrendingDown, cor: "text-rose-600",    bg: "bg-rose-50",    value: "—" },
-          { label: "Lucro Grupo",              icon: BarChart3,    cor: "text-purple-600",  bg: "bg-purple-50",  value: "—" },
-          { label: "Saldo Total (10 contas)",  icon: Wallet,       cor: "text-blue-600",    bg: "bg-blue-50",    value: "—" },
+          { label: "Faturamento Consolidado", icon: TrendingUp, cor: "text-emerald-600", bg: "bg-emerald-50", value: "—" },
+          { label: "Custo Consolidado", icon: TrendingDown, cor: "text-rose-600", bg: "bg-rose-50", value: "—" },
+          { label: "Lucro Grupo", icon: BarChart3, cor: "text-purple-600", bg: "bg-purple-50", value: "—" },
+          { label: "Saldo Total (10 contas)", icon: Wallet, cor: "text-blue-600", bg: "bg-blue-50", value: "—" },
         ].map(item => {
           const Icon = item.icon;
           return (
@@ -351,8 +345,6 @@ function SecaoMultiEmpresa() {
     </SectionCard>
   );
 }
-
-// ─── Componente principal ──────────────────────────────────────────────────
 
 export function PainelFinanceiro() {
   const [showCustomizer, setShowCustomizer] = useState(false);
@@ -509,14 +501,14 @@ export function PainelFinanceiro() {
 
         if (Array.isArray(result)) {
           lancamentos = result;
-        } else if (Array.isArray(result?.data)) {
-          lancamentos = result.data;
-        } else if (Array.isArray(result?.financial_invoices)) {
-          lancamentos = result.financial_invoices;
-        } else if (Array.isArray(result?.invoices)) {
-          lancamentos = result.invoices;
-        } else if (Array.isArray(result?.entries)) {
-          lancamentos = result.entries;
+        } else if (Array.isArray((result as any)?.data)) {
+          lancamentos = (result as any).data;
+        } else if (Array.isArray((result as any)?.financial_invoices)) {
+          lancamentos = (result as any).financial_invoices;
+        } else if (Array.isArray((result as any)?.invoices)) {
+          lancamentos = (result as any).invoices;
+        } else if (Array.isArray((result as any)?.entries)) {
+          lancamentos = (result as any).entries;
         }
       }
 
@@ -668,19 +660,18 @@ export function PainelFinanceiro() {
       : `Conta ${filtroBanco} — ${quantidadeLancamentos} lançamentos`;
 
   const allKpiCards = [
-    { id: "saldo",       title: "Saldo Total",        value: fmt(kpis.saldo),       subtitle: subtitleBanco,                                  icon: Wallet,        colorClass: "text-blue-500" },
-    { id: "faturamento", title: "Faturamento Mensal", value: fmt(kpis.faturamento), subtitle: loadingKpis ? 'Carregando dados...' : subtitleBanco, icon: TrendingUp,    colorClass: "text-emerald-500" },
-    { id: "custo",       title: "Custo Operacional",  value: fmt(kpis.custo),       subtitle: loadingKpis ? 'Carregando dados...' : subtitleBanco, icon: DollarSign,    colorClass: "text-rose-500" },
-    { id: "lucro",       title: "Lucro Estimado",     value: fmt(kpis.lucro),       subtitle: loadingKpis ? 'Carregando dados...' : subtitleBanco, icon: BarChart3,     colorClass: "text-purple-500" },
-    { id: "juros",       title: "Juros Evitados",     value: fmt(kpis.juros),       subtitle: loadingKpis ? 'Carregando dados...' : 'Cálculo inicial', icon: Shield,        colorClass: "text-teal-500" },
-    { id: "atraso",      title: "Em Atraso",          value: fmt(kpis.atraso),      subtitle: loadingKpis ? 'Carregando dados...' : subtitleBanco, icon: AlertTriangle, colorClass: "text-amber-500" },
+    { id: "saldo", title: "Saldo Total", value: fmt(kpis.saldo), subtitle: subtitleBanco, icon: Wallet, colorClass: "text-blue-500" },
+    { id: "faturamento", title: "Faturamento Mensal", value: fmt(kpis.faturamento), subtitle: loadingKpis ? 'Carregando dados...' : subtitleBanco, icon: TrendingUp, colorClass: "text-emerald-500" },
+    { id: "custo", title: "Custo Operacional", value: fmt(kpis.custo), subtitle: loadingKpis ? 'Carregando dados...' : subtitleBanco, icon: DollarSign, colorClass: "text-rose-500" },
+    { id: "lucro", title: "Lucro Estimado", value: fmt(kpis.lucro), subtitle: loadingKpis ? 'Carregando dados...' : subtitleBanco, icon: BarChart3, colorClass: "text-purple-500" },
+    { id: "juros", title: "Juros Evitados", value: fmt(kpis.juros), subtitle: loadingKpis ? 'Carregando dados...' : 'Cálculo inicial', icon: Shield, colorClass: "text-teal-500" },
+    { id: "atraso", title: "Em Atraso", value: fmt(kpis.atraso), subtitle: loadingKpis ? 'Carregando dados...' : subtitleBanco, icon: AlertTriangle, colorClass: "text-amber-500" },
   ];
 
   const visibleCards = allKpiCards.filter(k => visibleKpis.includes(k.id));
 
   return (
     <div className="space-y-8">
-
       <PageHeader
         title="Gestão Financeira e Contábil"
         subtitle="Controle completo de receitas, custos operacionais e obrigações — Grupo Esquematiza (5 empresas)."
