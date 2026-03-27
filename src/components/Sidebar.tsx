@@ -1,5 +1,4 @@
 import { NavLink } from "react-router-dom";
-import { supabase } from "../lib/supabase";
 import * as Icons from "lucide-react";
 import { ChevronRight, LogOut, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import logoHorizontal from "../assets/logos/logo-horizontal.png";
@@ -88,7 +87,6 @@ function lerModulosAtivos(): Record<string, boolean> {
 
 // Filtra os grupos mostrando apenas módulos ativos
 function filtrarModulos(modulosAtivos: Record<string, boolean>): SidebarGroup[] {
-  // Se não há nada salvo ainda, mostra tudo
   const temConfiguracoes = Object.keys(modulosAtivos).length > 0;
 
   return ALL_MODULES
@@ -114,13 +112,11 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const { signOut } = useAuth();
   const [modulosAtivos, setModulosAtivos] = useState<Record<string, boolean>>(lerModulosAtivos);
 
-  // Reage ao evento disparado por Configuracoes.tsx ao salvar toggles
   useEffect(() => {
     function handleAtualizar() {
       setModulosAtivos(lerModulosAtivos());
     }
     window.addEventListener('modulos-atualizados', handleAtualizar);
-    // Também verifica no foco da janela (caso abra em outra aba)
     window.addEventListener('focus', handleAtualizar);
     return () => {
       window.removeEventListener('modulos-atualizados', handleAtualizar);
@@ -195,16 +191,18 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         </nav>
       </div>
 
-    {/* FOOTER */}
-<div className="p-3 border-t border-slate-100" style={{ position: 'relative', zIndex: 50 }}>
-  <button
-    onClick={() => signOut()}
-    style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer' }}
-    className={`text-slate-600 hover:text-red-600 rounded-xl hover:bg-red-50 text-sm transition-colors flex items-center ${
-      collapsed ? 'justify-center py-3' : 'gap-3 px-3 py-2.5'
-    }`}
-  >
-    <LogOut className="w-5 h-5" style={{ flexShrink: 0 }} />
-    {!collapsed && <span style={{ marginLeft: 8 }}>Encerrar sessão</span>}
-  </button>
-</div>
+      {/* FOOTER */}
+      <div className="p-3 border-t border-slate-100">
+        <button
+          onClick={() => signOut()}
+          className={`w-full flex items-center text-slate-600 hover:text-red-600 rounded-xl hover:bg-red-50 text-sm transition-colors ${
+            collapsed ? 'justify-center py-3' : 'gap-3 px-3 py-2.5'
+          }`}
+        >
+          <LogOut className="w-5 h-5 shrink-0" />
+          {!collapsed && <span>Encerrar sessão</span>}
+        </button>
+      </div>
+    </aside>
+  );
+}
