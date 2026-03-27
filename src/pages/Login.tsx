@@ -1,18 +1,20 @@
 import { useState } from "react";
+import { Navigate } from "react-router-dom";
 import logoSymbol from "../assets/logos/logo-symbol.png";
 import { useAuth } from "../hooks/useAuth";
 
 export function LoginPage() {
-  const { signIn, loading, authError } = useAuth();
+  const { signIn, loading, authError, isAuthenticated } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  // Se já está autenticado, redireciona direto
+  if (isAuthenticated) return <Navigate to="/dashboard" replace />;
+
   async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-
     if (!email || !password) return;
-
     await signIn(email, password);
   }
 
