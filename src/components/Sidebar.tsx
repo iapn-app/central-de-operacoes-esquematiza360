@@ -195,6 +195,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       <div className="p-3 border-t border-slate-100">
         <button
           onClick={() => signOut()}
+          style={{ cursor: 'pointer', pointerEvents: 'auto' }}
           className={`w-full flex items-center text-slate-600 hover:text-red-600 rounded-xl hover:bg-red-50 text-sm transition-colors ${
             collapsed ? 'justify-center py-3' : 'gap-3 px-3 py-2.5'
           }`}
