@@ -51,6 +51,7 @@ const ALL_MODULES: SidebarGroup[] = [
       { id: "dre",            label: "DRE Gerencial",        route: "/financeiro/dre",           icon: "PieChart" },
       { id: "relatorios-fin", label: "Relatórios",           route: "/financeiro/relatorios",    icon: "FileText" },
       { id: "rentabilidade",  label: "Rentabilidade",        route: "/financeiro/rentabilidade", icon: "TrendingUp" },
+      { id: "orcamento",         label: "Orç. vs Realizado",    route: "/financeiro/orcamento",     icon: "Target" },
     ],
   },
   {
@@ -76,7 +77,7 @@ const ALL_MODULES: SidebarGroup[] = [
 // Módulos que SEMPRE aparecem independente de toggles ou role
 const SEMPRE_VISIVEIS = [
   "dashboard", "configuracoes",
-  "escalas", "rentabilidade", "folha-pagamento", "notas-fiscais",
+  "escalas", "rentabilidade", "orcamento", "folha-pagamento", "notas-fiscais",
 ];
 
 // Módulos que o perfil financeiro pode ver
@@ -84,7 +85,7 @@ const MODULOS_FINANCEIRO = [
   "dashboard",
   "financeiro", "lancamentos", "receber", "pagar",
   "inadimplencia", "cobranca", "caixa-bancos", "fluxo-caixa",
-  "dre", "relatorios-fin", "rentabilidade",
+  "dre", "relatorios-fin", "rentabilidade", "orcamento",
 ];
 
 const EMAIL_ADMIN_MASTER = "mellaurj@gmail.com";
