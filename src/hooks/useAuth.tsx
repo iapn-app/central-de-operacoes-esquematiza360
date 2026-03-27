@@ -84,7 +84,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = async () => {
     setLoading(true);
     try {
-      await supabase.auth.signOut();
+      await supabase.auth.signOut({ scope: 'global' });
+      localStorage.removeItem('esquematiza-auth');
+      sessionStorage.clear();
     } catch (e) {
       console.error('signOut error:', e);
     } finally {
