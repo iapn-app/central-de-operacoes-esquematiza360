@@ -77,8 +77,12 @@ const MODULOS_FINANCEIRO = [
   "inadimplencia", "cobranca", "caixa-bancos", "fluxo-caixa", "dre", "relatorios-fin",
 ];
 
-function filtrarModulosPorRole(role: string | undefined, modulosAtivos: Record<string, boolean>): SidebarGroup[] {
+// Único email com acesso total incluindo Configurações
+const EMAIL_ADMIN_MASTER = "mellaurj@gmail.com";
+
+function filtrarModulosPorRole(role: string | undefined, email: string | undefined, modulosAtivos: Record<string, boolean>): SidebarGroup[] {
   const temConfiguracoes = Object.keys(modulosAtivos).length > 0;
+  const isAdminMaster = role === 'admin_master' && email === EMAIL_ADMIN_MASTER;
 
   return ALL_MODULES
     .map(group => ({
@@ -86,11 +90,13 @@ function filtrarModulosPorRole(role: string | undefined, modulosAtivos: Record<s
       items: group.items.filter(item => {
         // Financeiro: só vê módulos financeiros
         if (role === 'financeiro') return MODULOS_FINANCEIRO.includes(item.id);
-        // Owner / Gerente: tudo exceto configuracoes
-        if (role === 'owner' || role === 'gerente') return item.id !== 'configuracoes';
-        // Admin master: respeita toggles do localStorage
-        if (!temConfiguracoes) return true;
-        return modulosAtivos[item.id] !== false;
+        // Admin master real (Mellau): acesso total + respeita toggles
+        if (isAdminMaster) {
+          if (!temConfiguracoes) return true;
+          return modulosAtivos[item.id] !== false;
+        }
+        // Demais (Douglas, Panza, William): tudo exceto configuracoes
+        return item.id !== 'configuracoes';
       }),
     }))
     .filter(group => group.items.length > 0);
@@ -126,7 +132,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
     };
   }, []);
 
-  const grupos = filtrarModulosPorRole(profile?.role, modulosAtivos);
+  const grupos = filtrarModulosPorRole(profile?.role, profile?.email, modulosAtivos);
 
   return (
     <aside className={`fixed left-0 top-0 z-50 h-screen bg-white border-r border-slate-200 flex flex-col transition-all duration-300 ${collapsed ? "w-[90px]" : "w-[260px]"}`}>
