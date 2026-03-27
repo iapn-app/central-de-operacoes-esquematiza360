@@ -34,6 +34,7 @@ import Performance from "./pages/Performance";
 import { SimuladorRiscoCliente } from "./pages/SimuladorRiscoCliente";
 
 import { Contratos } from "./pages/Contratos";
+import { RentabilidadeContratos } from "./pages/financeiro/RentabilidadeContratos";
 import { Configuracoes } from "./pages/Configuracoes";
 
 function LoginGuard() {
@@ -85,6 +86,7 @@ function App() {
             <Route path="financeiro/caixa-bancos" element={<CaixaBancos />} />
             <Route path="financeiro/inadimplencia" element={<FinanceiroInadimplencia />} />
             <Route path="financeiro/dre" element={<ResultadoMes />} />
+            <Route path="financeiro/rentabilidade" element={<RentabilidadeContratos />} />
             <Route path="inteligencia-operacional" element={<InteligenciaOperacional />} />
             <Route path="mapa-risco" element={<MapaRisco />} />
             <Route path="performance" element={<Performance />} />
