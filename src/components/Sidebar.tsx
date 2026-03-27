@@ -76,7 +76,7 @@ const ALL_MODULES: SidebarGroup[] = [
 const MODULOS_FINANCEIRO = [
   "dashboard",
   "financeiro", "lancamentos", "receber", "pagar",
-  "inadimplencia", "cobranca", "caixa-bancos", "fluxo-caixa", "dre", "relatorios-fin",
+  "inadimplencia", "cobranca", "caixa-bancos", "fluxo-caixa", "dre", "relatorios-fin", "rentabilidade",
 ];
 
 // Único email com acesso total incluindo Configurações
