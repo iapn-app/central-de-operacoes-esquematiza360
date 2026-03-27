@@ -66,6 +66,7 @@ const ALL_MODULES: SidebarGroup[] = [
     items: [
       { id: "contratos",      label: "Contratos",        route: "/contratos",        icon: "FileSignature" },
       { id: "folha-pagamento",  label: "Folha de Pagamento", route: "/folha-pagamento",  icon: "Receipt" },
+      { id: "notas-fiscais",     label: "Notas Fiscais",      route: "/notas-fiscais",     icon: "FileText" },
       { id: "configuracoes", label: "Configurações", route: "/configuracoes", icon: "Settings" },
     ],
   },
