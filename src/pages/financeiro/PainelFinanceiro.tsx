@@ -73,7 +73,7 @@ function KpiCustomizerPanel({ visible, onToggle, onClose }: {
 }) {
   return (
     <>
-      <div className="fixed inset-0 bg-black/20 z-40" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/20 z-30" onClick={onClose} />
       <div className="fixed right-0 top-0 h-full w-80 bg-white border-l border-slate-200 shadow-2xl z-50 flex flex-col">
         <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
           <div><h2 className="text-base font-bold text-slate-900">Personalizar KPIs</h2><p className="text-xs text-slate-500 mt-0.5">Escolha quais indicadores exibir</p></div>
