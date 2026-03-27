@@ -35,6 +35,7 @@ import { SimuladorRiscoCliente } from "./pages/SimuladorRiscoCliente";
 
 import { Contratos } from "./pages/Contratos";
 import { FolhaPagamento } from "./pages/FolhaPagamento";
+import { NotasFiscais } from "./pages/NotasFiscais";
 import { Configuracoes } from "./pages/Configuracoes";
 
 function LoginGuard() {
@@ -92,6 +93,7 @@ function App() {
             <Route path="simulador-risco" element={<SimuladorRiscoCliente />} />
             <Route path="contratos" element={<Contratos />} />
             <Route path="folha-pagamento" element={<FolhaPagamento />} />
+            <Route path="notas-fiscais" element={<NotasFiscais />} />
             <Route path="configuracoes" element={<Configuracoes />} />
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
