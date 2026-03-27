@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Users, DollarSign, FileText, ChevronDown, ChevronUp,
-  AlertTriangle, Clock, Search, Filter, Calculator,
+  AlertTriangle, Clock, Search, Filter, Calculator, TrendingUp,
   X, Plus, Shield, Briefcase, UserCog, Truck, Building2,
   ChevronRight,
 } from 'lucide-react';
