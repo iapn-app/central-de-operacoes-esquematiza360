@@ -60,6 +60,7 @@ const ALL_MODULES: SidebarGroup[] = [
       { id: "rentabilidade",   label: "Rentabilidade",       route: "/financeiro/rentabilidade", icon: "TrendingUp" },
       { id: "orcamento",       label: "Orç. vs Realizado",   route: "/financeiro/orcamento",     icon: "Target" },
       { id: "folha-pagamento", label: "Folha de Pagamento",  route: "/folha-pagamento",          icon: "Receipt" },
+      { id: "open-finance",    label: "Open Finance",         route: "/financeiro/open-finance",  icon: "Landmark" },
     ],
   },
   {
@@ -82,7 +83,7 @@ const ALL_MODULES: SidebarGroup[] = [
 // Módulos que SEMPRE aparecem independente de toggles ou role
 const SEMPRE_VISIVEIS = [
   "dashboard", "configuracoes",
-  "escalas", "rentabilidade", "orcamento", "folha-pagamento", "notas-fiscais",
+  "escalas", "rentabilidade", "orcamento", "folha-pagamento", "notas-fiscais", "open-finance",
 ];
 
 // Módulos que o perfil financeiro pode ver
