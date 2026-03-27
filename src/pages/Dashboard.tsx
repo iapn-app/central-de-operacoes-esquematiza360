@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "../lib/supabase";
 import {
   Activity, AlertTriangle, Building2, Car, CheckCircle2,
   Clock3, FileText, Shield, Users, Settings, X, Eye, EyeOff,
@@ -205,12 +207,64 @@ function TabOperacoes() {
 
 // ─── Aba Financeiro ────────────────────────────────────────────────────────
 
+interface ContratoRent {
+  id: string;
+  cliente: string;
+  empresa: string;
+  profissionais: number;
+  faturamento: number;
+  custo_mo: number;
+  custo_uniforme: number;
+  custo_transporte: number;
+  custo_admin: number;
+}
+
+function calcMargem(c: ContratoRent) {
+  const custo = c.custo_mo + c.custo_uniforme + c.custo_transporte + c.custo_admin;
+  const lucro  = c.faturamento - custo;
+  const margem = c.faturamento > 0 ? (lucro / c.faturamento) * 100 : 0;
+  return { custo, lucro, margem };
+}
+
+function MargemBarra({ margem }: { margem: number }) {
+  const cor = margem >= 25 ? '#10b981' : margem >= 15 ? '#f59e0b' : margem >= 0 ? '#f97316' : '#ef4444';
+  const label = margem >= 25 ? 'Alta' : margem >= 15 ? 'Média' : margem >= 0 ? 'Baixa' : 'Prejuízo';
+  const textCor = margem >= 25 ? 'text-emerald-700' : margem >= 15 ? 'text-amber-700' : margem >= 0 ? 'text-orange-700' : 'text-red-700';
+  const bg     = margem >= 25 ? 'bg-emerald-50' : margem >= 15 ? 'bg-amber-50' : margem >= 0 ? 'bg-orange-50' : 'bg-red-50';
+  return (
+    <div className="flex items-center gap-2">
+      <div className="w-20 h-1.5 bg-slate-200 rounded-full overflow-hidden flex-shrink-0">
+        <div className="h-full rounded-full" style={{ width: `${Math.max(0, Math.min(100, margem))}%`, background: cor }} />
+      </div>
+      <span className={`text-xs font-bold ${textCor}`}>{margem.toFixed(1)}%</span>
+      <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${bg} ${textCor}`}>{label}</span>
+    </div>
+  );
+}
+
 function TabFinanceiro() {
+  const navigate = useNavigate();
   const [visibleKpis, setVisibleKpis] = useState<string[]>(() => {
     try { const s = localStorage.getItem("dashboard_fin_kpis"); return s ? JSON.parse(s) : DEFAULT_FIN; }
     catch { return DEFAULT_FIN; }
   });
   const [showCustomizer, setShowCustomizer] = useState(false);
+  const [contratos, setContratos] = useState<ContratoRent[]>([]);
+  const [loadingRent, setLoadingRent] = useState(true);
+
+  useEffect(() => {
+    supabase
+      .from('contratos_rentabilidade')
+      .select('*')
+      .eq('ativo', true)
+      .order('faturamento', { ascending: false })
+      .limit(6)
+      .then(({ data }) => {
+        setContratos(data ?? []);
+        setLoadingRent(false);
+      })
+      .catch(() => setLoadingRent(false));
+  }, []);
 
   function toggleKpi(id: string) {
     setVisibleKpis(prev => {
@@ -221,6 +275,14 @@ function TabFinanceiro() {
   }
 
   const visibleCards = FIN_KPIS.filter(k => visibleKpis.includes(k.id));
+  const fmt = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+
+  // KPIs consolidados de rentabilidade
+  const totalFat   = contratos.reduce((s, c) => s + c.faturamento, 0);
+  const totalLucro = contratos.reduce((s, c) => s + calcMargem(c).lucro, 0);
+  const margemMedia = totalFat > 0 ? (totalLucro / totalFat) * 100 : 0;
+  const emPrejuizo  = contratos.filter(c => calcMargem(c).margem < 0).length;
+  const margemBaixa = contratos.filter(c => { const m = calcMargem(c).margem; return m >= 0 && m < 15; }).length;
 
   return (
     <div className="space-y-5">
@@ -231,6 +293,7 @@ function TabFinanceiro() {
           <Settings className="w-3.5 h-3.5" /> Personalizar
         </button>
       </div>
+
       {visibleCards.length > 0 ? (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">{visibleCards.map(k => <KpiCard key={k.id} {...k} />)}</div>
       ) : (
@@ -240,6 +303,88 @@ function TabFinanceiro() {
           <button onClick={() => setShowCustomizer(true)} className="mt-2 text-sm text-emerald-600 font-semibold hover:underline">Personalizar</button>
         </div>
       )}
+
+      {/* ── SEÇÃO MARGEM POR CONTRATO ─────────────────────────────────────── */}
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-bold text-slate-900">Margem por Contrato</h2>
+            <p className="text-xs text-slate-500 mt-0.5">Rentabilidade individual dos principais contratos</p>
+          </div>
+          <div className="flex items-center gap-3">
+            {contratos.length > 0 && (
+              <div className="flex items-center gap-2">
+                {emPrejuizo > 0 && (
+                  <span className="flex items-center gap-1 px-2.5 py-1 bg-red-50 border border-red-200 rounded-full text-xs font-bold text-red-700">
+                    <AlertTriangle className="w-3 h-3" /> {emPrejuizo} prejuízo
+                  </span>
+                )}
+                {margemBaixa > 0 && (
+                  <span className="flex items-center gap-1 px-2.5 py-1 bg-amber-50 border border-amber-200 rounded-full text-xs font-bold text-amber-700">
+                    <AlertTriangle className="w-3 h-3" /> {margemBaixa} baixa
+                  </span>
+                )}
+                <span className="text-xs font-semibold text-slate-500 px-2.5 py-1 bg-slate-100 rounded-full">
+                  Margem média: {margemMedia.toFixed(1)}%
+                </span>
+              </div>
+            )}
+            <button
+              onClick={() => navigate('/financeiro/rentabilidade')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-semibold hover:bg-slate-700 transition"
+            >
+              Ver tudo <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+
+        {loadingRent ? (
+          <div className="p-5 space-y-3">
+            {[1,2,3].map(i => (
+              <div key={i} className="flex items-center justify-between p-3 rounded-xl border border-slate-100">
+                <div className="space-y-2 flex-1">
+                  <div className="h-3 w-40 bg-slate-100 rounded animate-pulse" />
+                  <div className="h-2 w-24 bg-slate-100 rounded animate-pulse" />
+                </div>
+                <div className="h-3 w-32 bg-slate-100 rounded animate-pulse" />
+              </div>
+            ))}
+          </div>
+        ) : contratos.length === 0 ? (
+          <div className="px-5 py-10 text-center">
+            <BarChart3 className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+            <p className="text-sm text-slate-500 font-medium">Nenhum dado de rentabilidade ainda</p>
+            <p className="text-xs text-slate-400 mt-1">Cadastre contratos em <strong>Financeiro → Rentabilidade</strong></p>
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {contratos.map(c => {
+              const { lucro, margem } = calcMargem(c);
+              return (
+                <div key={c.id} className="flex items-center justify-between px-5 py-3 hover:bg-slate-50 transition">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-slate-800 truncate">{c.cliente}</p>
+                    <p className="text-xs text-slate-400">{c.empresa} · {c.profissionais} profissionais</p>
+                  </div>
+                  <div className="flex items-center gap-6 flex-shrink-0 ml-4">
+                    <div className="text-right hidden md:block">
+                      <p className="text-xs text-slate-400">Faturamento</p>
+                      <p className="text-sm font-bold text-slate-700">{fmt(c.faturamento)}</p>
+                    </div>
+                    <div className="text-right hidden md:block">
+                      <p className="text-xs text-slate-400">Lucro</p>
+                      <p className={`text-sm font-bold ${lucro >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>{fmt(lucro)}</p>
+                    </div>
+                    <MargemBarra margem={margem} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+      {/* ── FIM SEÇÃO MARGEM ─────────────────────────────────────────────── */}
+
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <div className="xl:col-span-2 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mb-4"><h2 className="text-base font-bold text-slate-900">Visão por Empresa</h2><p className="text-xs text-slate-500">Consolidado do Grupo Esquematiza</p></div>
@@ -265,7 +410,7 @@ function TabFinanceiro() {
             <StatusItem label="Inadimplência"     value="—" />
             <StatusItem label="Contas a Pagar"    value="—" />
             <StatusItem label="Saldo Consolidado" value="—" />
-            <StatusItem label="Margem do Mês"     value="—" />
+            <StatusItem label="Margem do Mês"     value={contratos.length > 0 ? `${margemMedia.toFixed(1)}%` : "—"} status={margemMedia >= 20 ? "ok" : margemMedia > 0 ? "alert" : "neutral"} />
             <StatusItem label="NFs Pendentes"     value="—" />
           </div>
         </div>
