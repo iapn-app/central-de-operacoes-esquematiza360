@@ -114,11 +114,14 @@ function filtrarModulos(
 ): SidebarGroup[] {
   const temConfiguracoes = Object.keys(modulosAtivos).length > 0;
   const isAdminMaster = role === "admin_master" && email === EMAIL_ADMIN_MASTER;
+  const podeVerConfiguracoes = email === EMAIL_ADMIN_MASTER;
 
   return ALL_MODULES
     .map(group => ({
       ...group,
       items: group.items.filter(item => {
+        // Configurações: SOMENTE o email admin master
+        if (item.id === "configuracoes") return podeVerConfiguracoes;
         // Sempre visível
         if (SEMPRE_VISIVEIS.includes(item.id)) return true;
         // Perfil financeiro
@@ -128,7 +131,7 @@ function filtrarModulos(
           if (!temConfiguracoes) return true;
           return modulosAtivos[item.id] !== false;
         }
-        // Demais: tudo exceto configuracoes
+        // Demais (Douglas, Panza, William): nunca veem configuracoes
         return item.id !== "configuracoes";
       }),
     }))
