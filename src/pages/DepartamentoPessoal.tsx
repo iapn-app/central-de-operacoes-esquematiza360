@@ -87,18 +87,26 @@ function corVencimento(dias: number) {
 // ─── ABA ADMISSÃO / DEMISSÃO ─────────────────────────────────────────────────
 
 const FORM_ADM_VAZIO = {
+  // ASO (etapa 1)
+  aso_medico:'', aso_data:'', aso_resultado:'apto', aso_vencimento:'',
+  // Identificação (etapa 2)
   nome:'', cpf:'', rg:'', orgao_emissor:'',
   data_nascimento:'', sexo:'', estado_civil:'', escolaridade:'',
   endereco:'', cep:'', telefone:'',
+  // Contrato (etapa 3)
   cargo:'Vigilante', empresa:'Vigilância', tipo_contrato:'CLT',
   data_admissao:'', salario_base:'2850', turno:'12x36 D',
   posto:'', periodo_experiencia:'45+45',
+  // Documentos (etapa 4)
   ctps_numero:'', ctps_serie:'', pis:'', titulo_eleitor:'',
   reservista:'', cnh:'', banco_conta:'',
+  // Vigilante (etapa 5 - só vigilante)
   registro_pf:'', validade_registro:'', porte_arma:'',
   validade_porte:'', ultimo_curso_tiro:'', venc_reciclagem:'', tipo_armamento:'',
+  // Benefícios
   vale_transporte:true, vale_refeicao:true, plano_saude:false,
   seguro_vida:false, insalubre:false,
+  // Emergência
   contato_nome:'', contato_parentesco:'', contato_telefone:'',
 };
 
@@ -125,7 +133,7 @@ function TabAdmissao({ funcionarios, onAtualizar }: {
   const isVigilante = form.cargo === 'Vigilante';
 
   const ETAPAS = [
-    'Identificação', 'Contrato', 'Documentos',
+    'ASO', 'Identificação', 'Contrato', 'Documentos',
     ...(isVigilante ? ['Vigilante'] : []),
     'Benefícios', 'Emergência',
   ];
@@ -270,8 +278,72 @@ function TabAdmissao({ funcionarios, onAtualizar }: {
             {/* Conteúdo por etapa */}
             <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
 
-              {/* ETAPA 1: Identificação */}
+              {/* ETAPA 1: ASO admissional — OBRIGATÓRIO PRIMEIRO */}
               {etapa === 1 && (
+                <div className="space-y-4">
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 flex items-start gap-3">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs font-bold text-amber-800">ASO Admissional obrigatório antes de qualquer documento</p>
+                      <p className="text-xs text-amber-600 mt-0.5">Se o resultado for inapto, o processo é encerrado aqui. Nenhum contrato é assinado.</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="col-span-2 space-y-1"><label className={lbl}>Médico / Clínica Responsável</label>
+                      <input className={inp} value={form.aso_medico} onChange={e=>campo('aso_medico',e.target.value)} placeholder="Dr. Nome ou Clínica Saúde Ltda" /></div>
+                    <div className="space-y-1"><label className={lbl}>Data do Exame *</label>
+                      <input type="date" className={inp} value={form.aso_data} onChange={e=>campo('aso_data',e.target.value)} /></div>
+                    <div className="space-y-1"><label className={lbl}>Vencimento do ASO</label>
+                      <input type="date" className={inp} value={form.aso_vencimento} onChange={e=>campo('aso_vencimento',e.target.value)} /></div>
+                    <div className="col-span-2 space-y-1"><label className={lbl}>Resultado *</label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { value:'apto',          label:'Apto',              cor:'border-emerald-400 bg-emerald-50 text-emerald-800' },
+                          { value:'apto_restricoes',label:'Apto c/ restrições',cor:'border-amber-400 bg-amber-50 text-amber-800' },
+                          { value:'inapto',         label:'Inapto',            cor:'border-red-400 bg-red-50 text-red-800' },
+                        ].map(op => (
+                          <button key={op.value} type="button" onClick={()=>campo('aso_resultado',op.value)} style={{cursor:'pointer'}}
+                            className={`py-3 rounded-xl border-2 text-sm font-bold transition ${form.aso_resultado===op.value ? op.cor+' border-2' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
+                            {op.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Alerta inapto */}
+                  {form.aso_resultado === 'inapto' && (
+                    <div className="rounded-xl bg-red-50 border border-red-300 px-4 py-4 space-y-2">
+                      <p className="text-sm font-bold text-red-800">Candidato inapto — processo encerrado</p>
+                      <p className="text-xs text-red-600">O candidato não pode ser admitido. Registre o exame e encerre o processo.</p>
+                      <button onClick={async ()=>{
+                        if (form.aso_data) {
+                          await supabase.from('dp_medicina').insert({
+                            funcionario_nome: form.nome || 'Candidato não admitido',
+                            tipo: 'admissional', data_realizacao: form.aso_data,
+                            resultado: 'inapto', medico: form.aso_medico || null,
+                          });
+                        }
+                        setModalAdm(false); setEtapa(1); setForm(FORM_ADM_VAZIO);
+                      }} style={{cursor:'pointer'}}
+                        className="px-4 py-2 bg-red-600 text-white rounded-xl text-xs font-bold hover:bg-red-700 transition">
+                        Registrar e encerrar processo
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Info apto com restrições */}
+                  {form.aso_resultado === 'apto_restricoes' && (
+                    <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3">
+                      <p className="text-xs font-bold text-amber-800">Apto com restrições</p>
+                      <p className="text-xs text-amber-600 mt-0.5">O candidato pode ser admitido, mas deve ser alocado conforme as restrições médicas indicadas no ASO.</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ETAPA 2: Identificação */}
+              {etapa === 2 && (
                 <div className="space-y-4">
                   <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-2.5">
                     <p className="text-xs font-bold text-blue-700">Identificação Pessoal</p>
@@ -309,8 +381,8 @@ function TabAdmissao({ funcionarios, onAtualizar }: {
                 </div>
               )}
 
-              {/* ETAPA 2: Contrato */}
-              {etapa === 2 && (
+              {/* ETAPA 3: Contrato */}
+              {etapa === 3 && (
                 <div className="space-y-4">
                   <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-2.5">
                     <p className="text-xs font-bold text-emerald-700">Dados do Contrato</p>
@@ -318,7 +390,7 @@ function TabAdmissao({ funcionarios, onAtualizar }: {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1"><label className={lbl}>Cargo / Função *</label>
                       <input className={inp} value={form.cargo} onChange={e=>campo('cargo',e.target.value)} /></div>
-                    <div className="space-y-1"><label className={lbl}>Empresa (CNPJ) *</label>
+                    <div className="space-y-1"><label className={lbl}>Empresa *</label>
                       <select className={sel} value={form.empresa} onChange={e=>campo('empresa',e.target.value)}>
                         {EMPRESAS.map(e=><option key={e}>{e}</option>)}
                       </select></div>
@@ -344,8 +416,8 @@ function TabAdmissao({ funcionarios, onAtualizar }: {
                 </div>
               )}
 
-              {/* ETAPA 3: Documentos */}
-              {etapa === 3 && (
+              {/* ETAPA 4: Documentos */}
+              {etapa === 4 && (
                 <div className="space-y-4">
                   <div className="rounded-xl border border-amber-100 bg-amber-50 px-4 py-2.5">
                     <p className="text-xs font-bold text-amber-700">Documentos Trabalhistas</p>
@@ -371,11 +443,11 @@ function TabAdmissao({ funcionarios, onAtualizar }: {
                 </div>
               )}
 
-              {/* ETAPA 4 (só vigilante): Registro PF */}
-              {etapa === 4 && isVigilante && (
+              {/* ETAPA 5 (só vigilante): Registro PF */}
+              {etapa === 5 && isVigilante && (
                 <div className="space-y-4">
                   <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-2.5">
-                    <p className="text-xs font-bold text-red-700">Dados Específicos de Vigilante — Polícia Federal</p>
+                    <p className="text-xs font-bold text-red-700">Documentos Específicos de Vigilante — Polícia Federal</p>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1"><label className={lbl}>Nº Registro PF</label>
@@ -399,18 +471,18 @@ function TabAdmissao({ funcionarios, onAtualizar }: {
               )}
 
               {/* ETAPA Benefícios */}
-              {((etapa === 4 && !isVigilante) || (etapa === 5 && isVigilante)) && (
+              {((etapa === 5 && !isVigilante) || (etapa === 6 && isVigilante)) && (
                 <div className="space-y-4">
                   <div className="rounded-xl border border-purple-100 bg-purple-50 px-4 py-2.5">
                     <p className="text-xs font-bold text-purple-700">Benefícios</p>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     {[
-                      { campo:'vale_transporte', label:'Vale Transporte',       desc:'Desconto proporcional ao uso' },
-                      { campo:'vale_refeicao',   label:'Vale Refeição',         desc:'R$ 22/dia útil trabalhado' },
-                      { campo:'plano_saude',     label:'Plano de Saúde',        desc:'Coparticipação do funcionário' },
-                      { campo:'seguro_vida',     label:'Seguro de Vida',        desc:'Cobertura por acidente/morte' },
-                      { campo:'insalubre',       label:'Insalubridade (20%)',   desc:'Sobre o piso salarial' },
+                      { campo:'vale_transporte', label:'Vale Transporte',     desc:'Desconto proporcional ao uso' },
+                      { campo:'vale_refeicao',   label:'Vale Refeição',       desc:'R$ 22/dia útil trabalhado' },
+                      { campo:'plano_saude',     label:'Plano de Saúde',      desc:'Coparticipação do funcionário' },
+                      { campo:'seguro_vida',     label:'Seguro de Vida',      desc:'Cobertura por acidente/morte' },
+                      { campo:'insalubre',       label:'Insalubridade (20%)', desc:'Sobre o piso salarial' },
                     ].map(b => (
                       <label key={b.campo} className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 transition">
                         <input type="checkbox" checked={(form as any)[b.campo]}
@@ -426,8 +498,8 @@ function TabAdmissao({ funcionarios, onAtualizar }: {
                 </div>
               )}
 
-              {/* ETAPA Emergência */}
-              {((etapa === 5 && !isVigilante) || (etapa === 6 && isVigilante)) && (
+              {/* ETAPA Emergência + Resumo final */}
+              {((etapa === 6 && !isVigilante) || (etapa === 7 && isVigilante)) && (
                 <div className="space-y-4">
                   <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5">
                     <p className="text-xs font-bold text-slate-600">Contato de Emergência</p>
@@ -443,15 +515,20 @@ function TabAdmissao({ funcionarios, onAtualizar }: {
                       <input className={inp} value={form.contato_telefone} onChange={e=>campo('contato_telefone',e.target.value)} placeholder="(11) 99999-9999" /></div>
                   </div>
 
-                  {/* Resumo antes de finalizar */}
-                  <div className="bg-slate-50 rounded-xl border border-slate-200 p-4 space-y-2 mt-4">
+                  {/* Resumo completo antes de finalizar */}
+                  <div className="bg-slate-50 rounded-xl border border-slate-200 p-4 space-y-2">
                     <p className="text-xs font-bold text-slate-600 uppercase">Resumo da Admissão</p>
                     {[
-                      { label:'Nome',     value: form.nome },
-                      { label:'Cargo',    value: form.cargo },
-                      { label:'Empresa',  value: form.empresa },
-                      { label:'Salário',  value: fmt(parseFloat(form.salario_base)||0) },
-                      { label:'Admissão', value: form.data_admissao ? new Date(form.data_admissao).toLocaleDateString('pt-BR') : '—' },
+                      { label:'ASO',           value: `${form.aso_resultado === 'apto' ? 'Apto' : 'Apto c/ restrições'} — ${form.aso_data ? new Date(form.aso_data).toLocaleDateString('pt-BR') : '—'}` },
+                      { label:'Nome',           value: form.nome },
+                      { label:'CPF',            value: form.cpf },
+                      { label:'Cargo',          value: form.cargo },
+                      { label:'Empresa',        value: form.empresa },
+                      { label:'Tipo contrato',  value: form.tipo_contrato },
+                      { label:'Salário',        value: fmt(parseFloat(form.salario_base)||0) },
+                      { label:'Turno',          value: form.turno },
+                      { label:'Admissão',       value: form.data_admissao ? new Date(form.data_admissao).toLocaleDateString('pt-BR') : '—' },
+                      { label:'Benefícios',     value: [form.vale_transporte&&'VT', form.vale_refeicao&&'VR', form.plano_saude&&'Plano', form.seguro_vida&&'Seguro'].filter(Boolean).join(', ') || 'Nenhum' },
                     ].map(r => (
                       <div key={r.label} className="flex justify-between text-xs">
                         <span className="text-slate-400">{r.label}</span>
@@ -459,12 +536,16 @@ function TabAdmissao({ funcionarios, onAtualizar }: {
                       </div>
                     ))}
                   </div>
+
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
+                    <p className="text-xs font-bold text-blue-800 mb-1">Próximo passo após admitir:</p>
+                    <p className="text-xs text-blue-600">O sistema irá cadastrar o funcionário na folha automaticamente. Lembre-se de enviar o evento S-2200 ao eSocial antes do primeiro dia de trabalho.</p>
+                  </div>
                 </div>
               )}
 
               {erro && <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{erro}</div>}
             </div>
-
             {/* Footer navegação */}
             <div className="flex justify-between items-center px-6 py-4 border-t border-slate-100 flex-shrink-0">
               <button onClick={()=>{ if(etapa>1) setEtapa(e=>e-1); else setModalAdm(false); }} style={{cursor:'pointer'}}
