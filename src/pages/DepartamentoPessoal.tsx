@@ -86,26 +86,50 @@ function corVencimento(dias: number) {
 
 // ─── ABA ADMISSÃO / DEMISSÃO ─────────────────────────────────────────────────
 
+const FORM_ADM_VAZIO = {
+  nome:'', cpf:'', rg:'', orgao_emissor:'',
+  data_nascimento:'', sexo:'', estado_civil:'', escolaridade:'',
+  endereco:'', cep:'', telefone:'',
+  cargo:'Vigilante', empresa:'Vigilância', tipo_contrato:'CLT',
+  data_admissao:'', salario_base:'2850', turno:'12x36 D',
+  posto:'', periodo_experiencia:'45+45',
+  ctps_numero:'', ctps_serie:'', pis:'', titulo_eleitor:'',
+  reservista:'', cnh:'', banco_conta:'',
+  registro_pf:'', validade_registro:'', porte_arma:'',
+  validade_porte:'', ultimo_curso_tiro:'', venc_reciclagem:'', tipo_armamento:'',
+  vale_transporte:true, vale_refeicao:true, plano_saude:false,
+  seguro_vida:false, insalubre:false,
+  contato_nome:'', contato_parentesco:'', contato_telefone:'',
+};
+
 function TabAdmissao({ funcionarios, onAtualizar }: {
   funcionarios: Funcionario[];
   onAtualizar: () => void;
 }) {
   const [modalAdm, setModalAdm] = useState(false);
   const [modalDem, setModalDem] = useState<Funcionario | null>(null);
-  const [busca, setBusca] = useState('');
-  const [form, setForm] = useState({
-    nome: '', cpf: '', cargo: 'Vigilante', posto: '', empresa: 'Vigilância',
-    turno: '12x36 D', salario_base: '2850', data_admissao: '',
-    tipo_contrato: 'CLT', vale_transporte: true, vale_refeicao: true,
-    plano_saude: false,
-  });
+  const [busca, setBusca]       = useState('');
+  const [etapa, setEtapa]       = useState(1);
+  const [form, setForm]         = useState<typeof FORM_ADM_VAZIO>(FORM_ADM_VAZIO);
   const [salvando, setSalvando] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro]         = useState<string | null>(null);
 
   const filtrados = funcionarios.filter(f =>
     f.nome.toLowerCase().includes(busca.toLowerCase()) ||
     f.cargo.toLowerCase().includes(busca.toLowerCase())
   );
+
+  function campo(f: string, v: string) { setForm(p => ({...p, [f]: v})); }
+  function check(f: string, v: boolean) { setForm(p => ({...p, [f]: v})); }
+
+  const isVigilante = form.cargo === 'Vigilante';
+
+  const ETAPAS = [
+    'Identificação', 'Contrato', 'Documentos',
+    ...(isVigilante ? ['Vigilante'] : []),
+    'Benefícios', 'Emergência',
+  ];
+  const totalEtapas = ETAPAS.length;
 
   async function admitir() {
     if (!form.nome || !form.posto || !form.data_admissao) {
@@ -117,19 +141,20 @@ function TabAdmissao({ funcionarios, onAtualizar }: {
         nome: form.nome, cpf: form.cpf || null, cargo: form.cargo,
         posto: form.posto, empresa: form.empresa, turno: form.turno,
         salario_base: parseFloat(form.salario_base) || 2850,
-        insalubre: false, dias_trabalhados: 30,
+        insalubre: form.insalubre, dias_trabalhados: 30,
         horas_extras_50: 0, horas_extras_100: 0, faltas: 0, status: 'ativo',
       });
       if (error) throw error;
-      // Registra no histórico de admissões
       await supabase.from('dp_historico').insert({
         tipo: 'admissao', funcionario_nome: form.nome,
         cargo: form.cargo, empresa: form.empresa,
-        data_evento: form.data_admissao, observacao: `Contrato ${form.tipo_contrato}`,
+        data_evento: form.data_admissao,
+        observacao: `Contrato ${form.tipo_contrato} | PIS: ${form.pis || '—'} | CTPS: ${form.ctps_numero || '—'}`,
       });
       onAtualizar();
       setModalAdm(false);
-      setForm({ nome:'',cpf:'',cargo:'Vigilante',posto:'',empresa:'Vigilância',turno:'12x36 D',salario_base:'2850',data_admissao:'',tipo_contrato:'CLT',vale_transporte:true,vale_refeicao:true,plano_saude:false });
+      setEtapa(1);
+      setForm(FORM_ADM_VAZIO);
     } catch (e: any) {
       setErro(e.message);
     } finally { setSalvando(false); }
@@ -138,32 +163,29 @@ function TabAdmissao({ funcionarios, onAtualizar }: {
   async function demitir(f: Funcionario, motivo: string) {
     await supabase.from('folha_pagamento').update({ status: 'inativo' }).eq('id', f.id);
     await supabase.from('dp_historico').insert({
-      tipo: 'demissao', funcionario_nome: f.nome,
-      cargo: f.cargo, empresa: f.empresa,
-      data_evento: new Date().toISOString().split('T')[0],
-      observacao: motivo,
+      tipo: 'demissao', funcionario_nome: f.nome, cargo: f.cargo, empresa: f.empresa,
+      data_evento: new Date().toISOString().split('T')[0], observacao: motivo,
     });
     onAtualizar();
     setModalDem(null);
   }
 
+  const inp = "w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500";
+  const sel = inp;
+  const lbl = "text-xs font-bold text-gray-500 uppercase";
+
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: 'Ativos',       value: funcionarios.filter(f=>f.status==='ativo').length,   cor: 'bg-emerald-50 text-emerald-600' },
-          { label: 'Inativos',     value: funcionarios.filter(f=>f.status==='inativo').length, cor: 'bg-red-50 text-red-600' },
-          { label: 'Admissões mês', value: 0,   cor: 'bg-blue-50 text-blue-600' },
-          { label: 'Demissões mês', value: 0,   cor: 'bg-amber-50 text-amber-600' },
+          { label:'Ativos',        value: funcionarios.filter(f=>f.status==='ativo').length,   cor:'bg-emerald-50 text-emerald-600' },
+          { label:'Inativos',      value: funcionarios.filter(f=>f.status==='inativo').length, cor:'bg-red-50 text-red-600' },
+          { label:'Admissões mês', value: 0, cor:'bg-blue-50 text-blue-600' },
+          { label:'Demissões mês', value: 0, cor:'bg-amber-50 text-amber-600' },
         ].map(k => (
           <div key={k.label} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex items-center gap-3">
-            <div className={`p-2.5 rounded-xl flex-shrink-0 ${k.cor}`}>
-              <Users className="w-4 h-4" />
-            </div>
-            <div>
-              <p className="text-xs text-slate-400">{k.label}</p>
-              <p className="text-2xl font-black text-slate-900">{k.value}</p>
-            </div>
+            <div className={`p-2.5 rounded-xl flex-shrink-0 ${k.cor}`}><Users className="w-4 h-4" /></div>
+            <div><p className="text-xs text-slate-400">{k.label}</p><p className="text-2xl font-black text-slate-900">{k.value}</p></div>
           </div>
         ))}
       </div>
@@ -174,7 +196,7 @@ function TabAdmissao({ funcionarios, onAtualizar }: {
           <input type="text" placeholder="Buscar funcionário..." value={busca} onChange={e=>setBusca(e.target.value)}
             className="w-full pl-9 pr-4 py-2.5 text-sm border border-slate-200 rounded-xl bg-white outline-none focus:ring-2 focus:ring-emerald-500" />
         </div>
-        <button onClick={()=>setModalAdm(true)} style={{cursor:'pointer'}}
+        <button onClick={()=>{ setModalAdm(true); setEtapa(1); setForm(FORM_ADM_VAZIO); }} style={{cursor:'pointer'}}
           className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 transition">
           <UserPlus className="w-4 h-4" /> Nova Admissão
         </button>
@@ -182,16 +204,14 @@ function TabAdmissao({ funcionarios, onAtualizar }: {
 
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         <table className="w-full">
-          <thead>
-            <tr className="bg-slate-50 border-b border-slate-200">
-              <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Funcionário</th>
-              <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Empresa</th>
-              <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Cargo</th>
-              <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 uppercase">Salário</th>
-              <th className="px-4 py-3 text-center text-xs font-bold text-slate-500 uppercase">Status</th>
-              <th className="px-4 py-3 text-center text-xs font-bold text-slate-500 uppercase">Ações</th>
-            </tr>
-          </thead>
+          <thead><tr className="bg-slate-50 border-b border-slate-200">
+            <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Funcionário</th>
+            <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Empresa</th>
+            <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Cargo</th>
+            <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 uppercase">Salário</th>
+            <th className="px-4 py-3 text-center text-xs font-bold text-slate-500 uppercase">Status</th>
+            <th className="px-4 py-3 text-center text-xs font-bold text-slate-500 uppercase">Ações</th>
+          </tr></thead>
           <tbody>
             {filtrados.length === 0 ? (
               <tr><td colSpan={6} className="px-4 py-12 text-center text-slate-400 text-sm">
@@ -199,24 +219,18 @@ function TabAdmissao({ funcionarios, onAtualizar }: {
               </td></tr>
             ) : filtrados.map(f => (
               <tr key={f.id} className="border-b border-slate-100 hover:bg-slate-50 transition">
-                <td className="px-4 py-3">
-                  <p className="text-sm font-semibold text-slate-800">{f.nome}</p>
-                  <p className="text-xs text-slate-400">{f.posto}</p>
-                </td>
+                <td className="px-4 py-3"><p className="text-sm font-semibold text-slate-800">{f.nome}</p><p className="text-xs text-slate-400">{f.posto}</p></td>
                 <td className="px-4 py-3"><span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{f.empresa}</span></td>
                 <td className="px-4 py-3 text-sm text-slate-600">{f.cargo}</td>
                 <td className="px-4 py-3 text-sm font-semibold text-slate-700 text-right">{fmt(f.salario_base)}</td>
                 <td className="px-4 py-3 text-center">
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${f.status==='ativo' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
-                    {f.status === 'ativo' ? 'Ativo' : 'Inativo'}
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${f.status==='ativo'?'bg-emerald-50 text-emerald-700 border-emerald-200':'bg-red-50 text-red-700 border-red-200'}`}>
+                    {f.status==='ativo'?'Ativo':'Inativo'}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-center">
-                  {f.status === 'ativo' && (
-                    <button onClick={()=>setModalDem(f)} style={{cursor:'pointer'}}
-                      className="text-xs font-semibold text-red-600 hover:underline">
-                      Demitir
-                    </button>
+                  {f.status==='ativo' && (
+                    <button onClick={()=>setModalDem(f)} style={{cursor:'pointer'}} className="text-xs font-semibold text-red-600 hover:underline">Demitir</button>
                   )}
                 </td>
               </tr>
@@ -225,96 +239,260 @@ function TabAdmissao({ funcionarios, onAtualizar }: {
         </table>
       </div>
 
-      {/* Modal Admissão */}
+      {/* Modal Admissão por etapas */}
       {modalAdm && (
         <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-              <h2 className="text-base font-bold text-slate-900">Nova Admissão</h2>
-              <button onClick={()=>setModalAdm(false)} style={{cursor:'pointer'}} className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-slate-100">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="px-6 py-5 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                {[
-                  { label:'Nome Completo *', campo:'nome', type:'text', placeholder:'Nome do funcionário' },
-                  { label:'CPF', campo:'cpf', type:'text', placeholder:'000.000.000-00' },
-                  { label:'Data de Admissão *', campo:'data_admissao', type:'date', placeholder:'' },
-                  { label:'Salário Base (R$)', campo:'salario_base', type:'number', placeholder:'2850' },
-                ].map(f => (
-                  <div key={f.campo} className={`space-y-1 ${f.campo==='nome' ? 'col-span-2' : ''}`}>
-                    <label className="text-xs font-bold text-gray-500 uppercase">{f.label}</label>
-                    <input type={f.type} value={(form as any)[f.campo]} placeholder={f.placeholder}
-                      onChange={e=>setForm(prev=>({...prev,[f.campo]:e.target.value}))}
-                      className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500" />
-                  </div>
-                ))}
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-500 uppercase">Cargo</label>
-                  <input type="text" value={form.cargo} onChange={e=>setForm(p=>({...p,cargo:e.target.value}))}
-                    className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-500 uppercase">Posto / Setor</label>
-                  <input type="text" value={form.posto} onChange={e=>setForm(p=>({...p,posto:e.target.value}))}
-                    className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-500 uppercase">Empresa</label>
-                  <select value={form.empresa} onChange={e=>setForm(p=>({...p,empresa:e.target.value}))}
-                    className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500">
-                    {EMPRESAS.map(e=><option key={e}>{e}</option>)}
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-500 uppercase">Tipo de Contrato</label>
-                  <select value={form.tipo_contrato} onChange={e=>setForm(p=>({...p,tipo_contrato:e.target.value}))}
-                    className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500">
-                    <option>CLT</option><option>PJ</option><option>Estágio</option><option>Temporário</option>
-                  </select>
-                </div>
-              </div>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col">
 
-              <div className="bg-slate-50 rounded-xl p-4">
-                <p className="text-xs font-bold text-slate-600 uppercase mb-3">Benefícios</p>
-                <div className="flex flex-wrap gap-4">
-                  {[
-                    { campo:'vale_transporte', label:'Vale Transporte' },
-                    { campo:'vale_refeicao',   label:'Vale Refeição' },
-                    { campo:'plano_saude',      label:'Plano de Saúde' },
-                  ].map(b => (
-                    <label key={b.campo} className="flex items-center gap-2 cursor-pointer">
-                      <input type="checkbox" checked={(form as any)[b.campo]}
-                        onChange={e=>setForm(p=>({...p,[b.campo]:e.target.checked}))}
-                        className="w-4 h-4 rounded text-emerald-600" />
-                      <span className="text-sm text-slate-700">{b.label}</span>
-                    </label>
-                  ))}
-                </div>
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 flex-shrink-0">
+              <div>
+                <h2 className="text-base font-bold text-slate-900">Nova Admissão</h2>
+                <p className="text-xs text-slate-400 mt-0.5">Etapa {etapa} de {totalEtapas}: {ETAPAS[etapa-1]}</p>
               </div>
+              <button onClick={()=>setModalAdm(false)} style={{cursor:'pointer'}} className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-slate-100"><X className="w-4 h-4"/></button>
+            </div>
+
+            {/* Progresso */}
+            <div className="px-6 pt-4 flex-shrink-0">
+              <div className="flex gap-1.5">
+                {ETAPAS.map((_,i) => (
+                  <div key={i} className={`flex-1 h-1.5 rounded-full transition-all ${i < etapa ? 'bg-emerald-500' : 'bg-slate-200'}`} />
+                ))}
+              </div>
+              <div className="flex justify-between mt-1">
+                {ETAPAS.map((e,i) => (
+                  <span key={i} className={`text-[10px] ${i < etapa ? 'text-emerald-600 font-bold' : 'text-slate-400'}`}>{e}</span>
+                ))}
+              </div>
+            </div>
+
+            {/* Conteúdo por etapa */}
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+
+              {/* ETAPA 1: Identificação */}
+              {etapa === 1 && (
+                <div className="space-y-4">
+                  <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-2.5">
+                    <p className="text-xs font-bold text-blue-700">Identificação Pessoal</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="col-span-2 space-y-1"><label className={lbl}>Nome Completo *</label>
+                      <input className={inp} value={form.nome} onChange={e=>campo('nome',e.target.value)} placeholder="Nome completo do funcionário" /></div>
+                    <div className="space-y-1"><label className={lbl}>CPF *</label>
+                      <input className={inp} value={form.cpf} onChange={e=>campo('cpf',e.target.value)} placeholder="000.000.000-00" /></div>
+                    <div className="space-y-1"><label className={lbl}>Telefone / WhatsApp *</label>
+                      <input className={inp} value={form.telefone} onChange={e=>campo('telefone',e.target.value)} placeholder="(11) 99999-9999" /></div>
+                    <div className="space-y-1"><label className={lbl}>RG</label>
+                      <input className={inp} value={form.rg} onChange={e=>campo('rg',e.target.value)} placeholder="0000000" /></div>
+                    <div className="space-y-1"><label className={lbl}>Órgão Emissor</label>
+                      <input className={inp} value={form.orgao_emissor} onChange={e=>campo('orgao_emissor',e.target.value)} placeholder="SSP/SP" /></div>
+                    <div className="space-y-1"><label className={lbl}>Data de Nascimento</label>
+                      <input type="date" className={inp} value={form.data_nascimento} onChange={e=>campo('data_nascimento',e.target.value)} /></div>
+                    <div className="space-y-1"><label className={lbl}>Sexo</label>
+                      <select className={sel} value={form.sexo} onChange={e=>campo('sexo',e.target.value)}>
+                        <option value="">Selecione...</option><option>Masculino</option><option>Feminino</option><option>Outro</option>
+                      </select></div>
+                    <div className="space-y-1"><label className={lbl}>Estado Civil</label>
+                      <select className={sel} value={form.estado_civil} onChange={e=>campo('estado_civil',e.target.value)}>
+                        <option value="">Selecione...</option><option>Solteiro(a)</option><option>Casado(a)</option><option>Divorciado(a)</option><option>Viúvo(a)</option><option>União estável</option>
+                      </select></div>
+                    <div className="space-y-1"><label className={lbl}>Escolaridade</label>
+                      <select className={sel} value={form.escolaridade} onChange={e=>campo('escolaridade',e.target.value)}>
+                        <option value="">Selecione...</option><option>Fundamental</option><option>Médio incompleto</option><option>Médio completo</option><option>Superior incompleto</option><option>Superior completo</option><option>Pós-graduação</option>
+                      </select></div>
+                    <div className="col-span-2 space-y-1"><label className={lbl}>Endereço Completo</label>
+                      <input className={inp} value={form.endereco} onChange={e=>campo('endereco',e.target.value)} placeholder="Rua, número, bairro, cidade — Estado" /></div>
+                    <div className="space-y-1"><label className={lbl}>CEP</label>
+                      <input className={inp} value={form.cep} onChange={e=>campo('cep',e.target.value)} placeholder="00000-000" /></div>
+                  </div>
+                </div>
+              )}
+
+              {/* ETAPA 2: Contrato */}
+              {etapa === 2 && (
+                <div className="space-y-4">
+                  <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-2.5">
+                    <p className="text-xs font-bold text-emerald-700">Dados do Contrato</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1"><label className={lbl}>Cargo / Função *</label>
+                      <input className={inp} value={form.cargo} onChange={e=>campo('cargo',e.target.value)} /></div>
+                    <div className="space-y-1"><label className={lbl}>Empresa (CNPJ) *</label>
+                      <select className={sel} value={form.empresa} onChange={e=>campo('empresa',e.target.value)}>
+                        {EMPRESAS.map(e=><option key={e}>{e}</option>)}
+                      </select></div>
+                    <div className="space-y-1"><label className={lbl}>Tipo de Contrato</label>
+                      <select className={sel} value={form.tipo_contrato} onChange={e=>campo('tipo_contrato',e.target.value)}>
+                        <option>CLT</option><option>PJ</option><option>Estágio</option><option>Temporário</option><option>Aprendiz</option>
+                      </select></div>
+                    <div className="space-y-1"><label className={lbl}>Data de Admissão *</label>
+                      <input type="date" className={inp} value={form.data_admissao} onChange={e=>campo('data_admissao',e.target.value)} /></div>
+                    <div className="space-y-1"><label className={lbl}>Salário Base (R$) *</label>
+                      <input type="number" className={inp} value={form.salario_base} onChange={e=>campo('salario_base',e.target.value)} /></div>
+                    <div className="space-y-1"><label className={lbl}>Turno / Jornada</label>
+                      <select className={sel} value={form.turno} onChange={e=>campo('turno',e.target.value)}>
+                        {['12x36 D','12x36 N','8h D','6h D','24h','Comercial 8h','Meio período'].map(t=><option key={t}>{t}</option>)}
+                      </select></div>
+                    <div className="space-y-1"><label className={lbl}>Posto / Setor *</label>
+                      <input className={inp} value={form.posto} onChange={e=>campo('posto',e.target.value)} placeholder="Nome do posto ou setor" /></div>
+                    <div className="space-y-1"><label className={lbl}>Período de Experiência</label>
+                      <select className={sel} value={form.periodo_experiencia} onChange={e=>campo('periodo_experiencia',e.target.value)}>
+                        <option value="45+45">45 + 45 dias</option><option value="30+30">30 + 30 dias</option><option value="90">90 dias corridos</option><option value="nao">Não aplicável</option>
+                      </select></div>
+                  </div>
+                </div>
+              )}
+
+              {/* ETAPA 3: Documentos */}
+              {etapa === 3 && (
+                <div className="space-y-4">
+                  <div className="rounded-xl border border-amber-100 bg-amber-50 px-4 py-2.5">
+                    <p className="text-xs font-bold text-amber-700">Documentos Trabalhistas</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1"><label className={lbl}>Nº CTPS</label>
+                      <input className={inp} value={form.ctps_numero} onChange={e=>campo('ctps_numero',e.target.value)} placeholder="0000000" /></div>
+                    <div className="space-y-1"><label className={lbl}>Série CTPS</label>
+                      <input className={inp} value={form.ctps_serie} onChange={e=>campo('ctps_serie',e.target.value)} placeholder="000-SP" /></div>
+                    <div className="space-y-1"><label className={lbl}>PIS / PASEP</label>
+                      <input className={inp} value={form.pis} onChange={e=>campo('pis',e.target.value)} placeholder="000.00000.00-0" /></div>
+                    <div className="space-y-1"><label className={lbl}>Título de Eleitor</label>
+                      <input className={inp} value={form.titulo_eleitor} onChange={e=>campo('titulo_eleitor',e.target.value)} placeholder="0000 0000 0000" /></div>
+                    <div className="space-y-1"><label className={lbl}>Reservista</label>
+                      <input className={inp} value={form.reservista} onChange={e=>campo('reservista',e.target.value)} placeholder="Nº da reservista" /></div>
+                    <div className="space-y-1"><label className={lbl}>CNH (categoria)</label>
+                      <select className={sel} value={form.cnh} onChange={e=>campo('cnh',e.target.value)}>
+                        <option value="">Não possui</option><option>A</option><option>B</option><option>AB</option><option>C</option><option>D</option><option>E</option>
+                      </select></div>
+                    <div className="col-span-2 space-y-1"><label className={lbl}>Banco / Conta Salário</label>
+                      <input className={inp} value={form.banco_conta} onChange={e=>campo('banco_conta',e.target.value)} placeholder="Ex: Itaú — Ag 7157 / Cc 12345-6" /></div>
+                  </div>
+                </div>
+              )}
+
+              {/* ETAPA 4 (só vigilante): Registro PF */}
+              {etapa === 4 && isVigilante && (
+                <div className="space-y-4">
+                  <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-2.5">
+                    <p className="text-xs font-bold text-red-700">Dados Específicos de Vigilante — Polícia Federal</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1"><label className={lbl}>Nº Registro PF</label>
+                      <input className={inp} value={form.registro_pf} onChange={e=>campo('registro_pf',e.target.value)} placeholder="000000" /></div>
+                    <div className="space-y-1"><label className={lbl}>Validade do Registro</label>
+                      <input type="date" className={inp} value={form.validade_registro} onChange={e=>campo('validade_registro',e.target.value)} /></div>
+                    <div className="space-y-1"><label className={lbl}>Porte de Arma (nº)</label>
+                      <input className={inp} value={form.porte_arma} onChange={e=>campo('porte_arma',e.target.value)} placeholder="Nº do porte" /></div>
+                    <div className="space-y-1"><label className={lbl}>Validade do Porte</label>
+                      <input type="date" className={inp} value={form.validade_porte} onChange={e=>campo('validade_porte',e.target.value)} /></div>
+                    <div className="space-y-1"><label className={lbl}>Último Curso de Tiro</label>
+                      <input type="date" className={inp} value={form.ultimo_curso_tiro} onChange={e=>campo('ultimo_curso_tiro',e.target.value)} /></div>
+                    <div className="space-y-1"><label className={lbl}>Vencimento Reciclagem</label>
+                      <input type="date" className={inp} value={form.venc_reciclagem} onChange={e=>campo('venc_reciclagem',e.target.value)} /></div>
+                    <div className="col-span-2 space-y-1"><label className={lbl}>Tipo de Armamento</label>
+                      <select className={sel} value={form.tipo_armamento} onChange={e=>campo('tipo_armamento',e.target.value)}>
+                        <option value="">Selecione...</option><option>Revólver .38</option><option>Pistola 9mm</option><option>Pistola .40</option><option>Pistola .380</option><option>Não armado</option>
+                      </select></div>
+                  </div>
+                </div>
+              )}
+
+              {/* ETAPA Benefícios */}
+              {((etapa === 4 && !isVigilante) || (etapa === 5 && isVigilante)) && (
+                <div className="space-y-4">
+                  <div className="rounded-xl border border-purple-100 bg-purple-50 px-4 py-2.5">
+                    <p className="text-xs font-bold text-purple-700">Benefícios</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { campo:'vale_transporte', label:'Vale Transporte',       desc:'Desconto proporcional ao uso' },
+                      { campo:'vale_refeicao',   label:'Vale Refeição',         desc:'R$ 22/dia útil trabalhado' },
+                      { campo:'plano_saude',     label:'Plano de Saúde',        desc:'Coparticipação do funcionário' },
+                      { campo:'seguro_vida',     label:'Seguro de Vida',        desc:'Cobertura por acidente/morte' },
+                      { campo:'insalubre',       label:'Insalubridade (20%)',   desc:'Sobre o piso salarial' },
+                    ].map(b => (
+                      <label key={b.campo} className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 transition">
+                        <input type="checkbox" checked={(form as any)[b.campo]}
+                          onChange={e=>check(b.campo, e.target.checked)}
+                          className="w-4 h-4 rounded text-emerald-600 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-semibold text-slate-800">{b.label}</p>
+                          <p className="text-xs text-slate-400">{b.desc}</p>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ETAPA Emergência */}
+              {((etapa === 5 && !isVigilante) || (etapa === 6 && isVigilante)) && (
+                <div className="space-y-4">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5">
+                    <p className="text-xs font-bold text-slate-600">Contato de Emergência</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="col-span-2 space-y-1"><label className={lbl}>Nome do Contato</label>
+                      <input className={inp} value={form.contato_nome} onChange={e=>campo('contato_nome',e.target.value)} placeholder="Nome completo" /></div>
+                    <div className="space-y-1"><label className={lbl}>Parentesco</label>
+                      <select className={sel} value={form.contato_parentesco} onChange={e=>campo('contato_parentesco',e.target.value)}>
+                        <option value="">Selecione...</option><option>Cônjuge</option><option>Pai/Mãe</option><option>Filho(a)</option><option>Irmão/Irmã</option><option>Outro</option>
+                      </select></div>
+                    <div className="space-y-1"><label className={lbl}>Telefone</label>
+                      <input className={inp} value={form.contato_telefone} onChange={e=>campo('contato_telefone',e.target.value)} placeholder="(11) 99999-9999" /></div>
+                  </div>
+
+                  {/* Resumo antes de finalizar */}
+                  <div className="bg-slate-50 rounded-xl border border-slate-200 p-4 space-y-2 mt-4">
+                    <p className="text-xs font-bold text-slate-600 uppercase">Resumo da Admissão</p>
+                    {[
+                      { label:'Nome',     value: form.nome },
+                      { label:'Cargo',    value: form.cargo },
+                      { label:'Empresa',  value: form.empresa },
+                      { label:'Salário',  value: fmt(parseFloat(form.salario_base)||0) },
+                      { label:'Admissão', value: form.data_admissao ? new Date(form.data_admissao).toLocaleDateString('pt-BR') : '—' },
+                    ].map(r => (
+                      <div key={r.label} className="flex justify-between text-xs">
+                        <span className="text-slate-400">{r.label}</span>
+                        <span className="font-semibold text-slate-700">{r.value || '—'}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {erro && <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{erro}</div>}
+            </div>
 
-              <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
-                <button onClick={()=>setModalAdm(false)} style={{cursor:'pointer'}} className="px-5 py-2.5 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-100">Cancelar</button>
+            {/* Footer navegação */}
+            <div className="flex justify-between items-center px-6 py-4 border-t border-slate-100 flex-shrink-0">
+              <button onClick={()=>{ if(etapa>1) setEtapa(e=>e-1); else setModalAdm(false); }} style={{cursor:'pointer'}}
+                className="px-5 py-2.5 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-100 transition">
+                {etapa === 1 ? 'Cancelar' : '← Voltar'}
+              </button>
+              <span className="text-xs text-slate-400">{etapa} / {totalEtapas}</span>
+              {etapa < totalEtapas ? (
+                <button onClick={()=>{ setErro(null); setEtapa(e=>e+1); }} style={{cursor:'pointer'}}
+                  className="px-5 py-2.5 rounded-xl text-sm font-bold bg-slate-900 text-white hover:bg-slate-700 transition">
+                  Próximo →
+                </button>
+              ) : (
                 <button onClick={admitir} disabled={salvando} style={{cursor:'pointer'}}
                   className="px-5 py-2.5 rounded-xl text-sm font-bold bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60 flex items-center gap-2">
-                  <UserPlus className="w-4 h-4" /> {salvando ? 'Admitindo...' : 'Admitir'}
+                  <UserPlus className="w-4 h-4" /> {salvando ? 'Admitindo...' : 'Finalizar Admissão'}
                 </button>
-              </div>
+              )}
             </div>
           </div>
         </div>
       )}
 
-      {/* Modal Demissão */}
-      {modalDem && (
-        <ModalDemissao funcionario={modalDem} onClose={()=>setModalDem(null)} onConfirmar={demitir} />
-      )}
+      {modalDem && <ModalDemissao funcionario={modalDem} onClose={()=>setModalDem(null)} onConfirmar={demitir} />}
     </div>
   );
 }
+
 
 function ModalDemissao({ funcionario, onClose, onConfirmar }: {
   funcionario: Funcionario;
