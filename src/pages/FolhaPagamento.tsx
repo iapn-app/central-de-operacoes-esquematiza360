@@ -206,6 +206,7 @@ function ModalFuncionario({ modelo, inicial, onClose, onSalvo }: {
   onClose: () => void;
   onSalvo: () => void;
 }) {
+  const [etapa, setEtapa] = useState(1);
   const [form, setForm] = useState<FormFuncionario>(
     inicial ? {
       nome: inicial.nome, cpf: inicial.cpf ?? '', cargo: inicial.cargo,
@@ -223,11 +224,20 @@ function ModalFuncionario({ modelo, inicial, onClose, onSalvo }: {
     }
   );
   const [salvando, setSalvando] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro]         = useState<string | null>(null);
 
   function set(campo: keyof FormFuncionario, valor: string | boolean) {
     setForm(f => ({ ...f, [campo]: valor }));
   }
+
+  const isVigilante = modelo.id === 'vigilante';
+
+  // Etapas: 1-Identificação, 2-Contrato, 3-Benefícios
+  // Vigilante ganha etapa extra de Documentos PF
+  const ETAPAS = isVigilante
+    ? ['Identificação', 'Contrato', 'Doc. PF', 'Benefícios']
+    : ['Identificação', 'Contrato', 'Benefícios'];
+  const totalEtapas = ETAPAS.length;
 
   const vPreview: Funcionario = {
     id: '', nome: form.nome, cargo: form.cargo, posto: form.posto,
@@ -241,13 +251,13 @@ function ModalFuncionario({ modelo, inicial, onClose, onSalvo }: {
     status: 'ativo',
   };
   const calc = calcularFolha(vPreview);
-
   const Icon = modelo.icon;
+  const inp = "w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500";
+  const lbl = "text-xs font-bold text-gray-500 uppercase";
 
   async function salvar() {
     if (!form.nome || !form.posto || !form.empresa) {
-      setErro('Preencha nome, posto/setor e empresa.');
-      return;
+      setErro('Preencha nome, posto/setor e empresa.'); return;
     }
     setSalvando(true);
     setErro(null);
@@ -263,7 +273,6 @@ function ModalFuncionario({ modelo, inicial, onClose, onSalvo }: {
         faltas: parseInt(form.faltas) || 0,
         status: 'ativo',
       };
-
       if (inicial?.id) {
         const { error } = await supabase.from('folha_pagamento').update(payload).eq('id', inicial.id);
         if (error) throw error;
@@ -275,24 +284,24 @@ function ModalFuncionario({ modelo, inicial, onClose, onSalvo }: {
       onClose();
     } catch (e: any) {
       setErro(e.message || 'Erro ao salvar.');
-    } finally {
-      setSalvando(false);
-    }
+    } finally { setSalvando(false); }
   }
 
   return (
     <div className="fixed inset-0 bg-black/50 z-[110] flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 flex-shrink-0">
           <div className="flex items-center gap-3">
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center border-2 ${modelo.cor}`}>
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center border-2 flex-shrink-0 ${modelo.cor}`}>
               <Icon className="w-4 h-4" />
             </div>
             <div>
               <h2 className="text-base font-bold text-slate-900">
                 {inicial ? 'Editar' : 'Novo'} — {modelo.label}
               </h2>
-              <p className="text-xs text-slate-400">{modelo.descricao}</p>
+              <p className="text-xs text-slate-400">Etapa {etapa} de {totalEtapas}: {ETAPAS[etapa-1]}</p>
             </div>
           </div>
           <button onClick={onClose} style={{ cursor: 'pointer' }}
@@ -301,125 +310,187 @@ function ModalFuncionario({ modelo, inicial, onClose, onSalvo }: {
           </button>
         </div>
 
-        <div className="px-6 py-5 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2 space-y-1">
-              <label className="text-xs font-bold text-gray-500 uppercase">Nome Completo *</label>
-              <input type="text" value={form.nome} onChange={e => set('nome', e.target.value)}
-                placeholder="Nome do funcionário"
-                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-gray-500 uppercase">CPF</label>
-              <input type="text" value={form.cpf} onChange={e => set('cpf', e.target.value)}
-                placeholder="000.000.000-00"
-                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-gray-500 uppercase">Cargo</label>
-              <input type="text" value={form.cargo} onChange={e => set('cargo', e.target.value)}
-                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-gray-500 uppercase">
-                {modelo.id === 'administrativo' || modelo.id === 'supervisor' ? 'Setor / Departamento' : 'Posto'} *
-              </label>
-              <input type="text" value={form.posto} onChange={e => set('posto', e.target.value)}
-                placeholder={modelo.id === 'administrativo' ? 'Ex: Financeiro, RH...' : 'Nome do posto'}
-                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-gray-500 uppercase">Empresa *</label>
-              <select value={form.empresa} onChange={e => set('empresa', e.target.value)}
-                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500">
-                {EMPRESAS.map(e => <option key={e}>{e}</option>)}
-              </select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-gray-500 uppercase">Turno / Jornada</label>
-              <select value={form.turno} onChange={e => set('turno', e.target.value)}
-                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500">
-                {TURNOS.map(t => <option key={t}>{t}</option>)}
-              </select>
-            </div>
+        {/* Progresso */}
+        <div className="px-6 pt-4 flex-shrink-0">
+          <div className="flex gap-1.5">
+            {ETAPAS.map((_,i) => (
+              <div key={i} className={`flex-1 h-1.5 rounded-full transition-all ${i < etapa ? 'bg-emerald-500' : 'bg-slate-200'}`} />
+            ))}
           </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-gray-500 uppercase">Salário Base (R$)</label>
-              <input type="number" value={form.salario_base} onChange={e => set('salario_base', e.target.value)}
-                min="0" step="0.01"
-                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-gray-500 uppercase">Dias Trabalhados</label>
-              <input type="number" value={form.dias_trabalhados} onChange={e => set('dias_trabalhados', e.target.value)}
-                min="0" max="31"
-                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-gray-500 uppercase">HE 50% (horas)</label>
-              <input type="number" value={form.horas_extras_50} onChange={e => set('horas_extras_50', e.target.value)}
-                min="0" step="0.5"
-                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-gray-500 uppercase">HE 100% (horas)</label>
-              <input type="number" value={form.horas_extras_100} onChange={e => set('horas_extras_100', e.target.value)}
-                min="0" step="0.5"
-                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-gray-500 uppercase">Faltas (dias)</label>
-              <input type="number" value={form.faltas} onChange={e => set('faltas', e.target.value)}
-                min="0" max="31"
-                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500" />
-            </div>
-            <div className="space-y-1 flex flex-col justify-end">
-              <label className="flex items-center gap-2 cursor-pointer py-2.5">
-                <input type="checkbox" checked={form.insalubre}
-                  onChange={e => set('insalubre', e.target.checked)}
-                  className="w-4 h-4 rounded border-gray-300 text-emerald-600" />
-                <span className="text-sm font-medium text-slate-700">Insalubridade (20%)</span>
-              </label>
-            </div>
+          <div className="flex justify-between mt-1">
+            {ETAPAS.map((e,i) => (
+              <span key={i} className={`text-[10px] ${i < etapa ? 'text-emerald-600 font-bold' : 'text-slate-400'}`}>{e}</span>
+            ))}
           </div>
+        </div>
 
-          {/* Preview */}
-          {parseFloat(form.salario_base) > 0 && (
-            <div className="bg-slate-50 rounded-xl border border-slate-200 p-4 grid grid-cols-3 gap-3">
-              <div className="text-center">
-                <p className="text-xs text-slate-400">Proventos</p>
-                <p className="text-sm font-black text-emerald-600">{fmt(calc.totalProventos)}</p>
+        {/* Conteúdo */}
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+
+          {/* ETAPA 1: Identificação */}
+          {etapa === 1 && (
+            <div className="space-y-3">
+              <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-2.5">
+                <p className="text-xs font-bold text-blue-700">Dados pessoais</p>
               </div>
-              <div className="text-center border-x border-slate-200">
-                <p className="text-xs text-slate-400">Líquido</p>
-                <p className="text-sm font-black text-slate-900">{fmt(calc.liquido)}</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2 space-y-1">
+                  <label className={lbl}>Nome Completo *</label>
+                  <input type="text" value={form.nome} onChange={e=>set('nome',e.target.value)}
+                    placeholder="Nome completo" className={inp} />
+                </div>
+                <div className="space-y-1">
+                  <label className={lbl}>CPF</label>
+                  <input type="text" value={form.cpf} onChange={e=>set('cpf',e.target.value)}
+                    placeholder="000.000.000-00" className={inp} />
+                </div>
+                <div className="space-y-1">
+                  <label className={lbl}>Cargo</label>
+                  <input type="text" value={form.cargo} onChange={e=>set('cargo',e.target.value)} className={inp} />
+                </div>
+                <div className="space-y-1">
+                  <label className={lbl}>{modelo.id === 'administrativo' || modelo.id === 'supervisor' ? 'Setor / Depto *' : 'Posto *'}</label>
+                  <input type="text" value={form.posto} onChange={e=>set('posto',e.target.value)}
+                    placeholder={modelo.id === 'administrativo' ? 'Ex: Financeiro, RH...' : 'Nome do posto'} className={inp} />
+                </div>
+                <div className="space-y-1">
+                  <label className={lbl}>Empresa *</label>
+                  <select value={form.empresa} onChange={e=>set('empresa',e.target.value)} className={inp}>
+                    {EMPRESAS.map(e=><option key={e}>{e}</option>)}
+                  </select>
+                </div>
               </div>
-              <div className="text-center">
-                <p className="text-xs text-slate-400">Custo Total</p>
-                <p className="text-sm font-black text-orange-600">{fmt(calc.custoTotal)}</p>
+            </div>
+          )}
+
+          {/* ETAPA 2: Contrato */}
+          {etapa === 2 && (
+            <div className="space-y-3">
+              <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-2.5">
+                <p className="text-xs font-bold text-emerald-700">Dados contratuais</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className={lbl}>Turno / Jornada</label>
+                  <select value={form.turno} onChange={e=>set('turno',e.target.value)} className={inp}>
+                    {TURNOS.map(t=><option key={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className={lbl}>Salário Base (R$)</label>
+                  <input type="number" value={form.salario_base} onChange={e=>set('salario_base',e.target.value)}
+                    min="0" step="0.01" className={inp} />
+                </div>
+                <div className="col-span-2 space-y-1 flex flex-col">
+                  <label className="flex items-center gap-2 cursor-pointer py-2">
+                    <input type="checkbox" checked={form.insalubre} onChange={e=>set('insalubre',e.target.checked)}
+                      className="w-4 h-4 rounded border-gray-300 text-emerald-600" />
+                    <span className="text-sm font-medium text-slate-700">Insalubridade (20%) — adicional sobre o piso salarial</span>
+                  </label>
+                </div>
+              </div>
+              {/* Preview salário */}
+              {parseFloat(form.salario_base) > 0 && (
+                <div className="bg-slate-50 rounded-xl border border-slate-200 p-4 grid grid-cols-3 gap-3">
+                  <div className="text-center">
+                    <p className="text-xs text-slate-400">Proventos</p>
+                    <p className="text-sm font-black text-emerald-600">{fmt(calc.totalProventos)}</p>
+                  </div>
+                  <div className="text-center border-x border-slate-200">
+                    <p className="text-xs text-slate-400">Líquido</p>
+                    <p className="text-sm font-black text-slate-900">{fmt(calc.liquido)}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-slate-400">Custo Empresa</p>
+                    <p className="text-sm font-black text-orange-600">{fmt(calc.custoTotal)}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ETAPA 3 vigilante: Doc PF */}
+          {etapa === 3 && isVigilante && (
+            <div className="space-y-3">
+              <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-2.5">
+                <p className="text-xs font-bold text-red-700">Documentos Policiais — Polícia Federal</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1"><label className={lbl}>Nº Registro PF</label>
+                  <input className={inp} placeholder="000000" /></div>
+                <div className="space-y-1"><label className={lbl}>Validade Registro</label>
+                  <input type="date" className={inp} /></div>
+                <div className="space-y-1"><label className={lbl}>Nº Porte de Arma</label>
+                  <input className={inp} placeholder="Nº do porte" /></div>
+                <div className="space-y-1"><label className={lbl}>Validade Porte</label>
+                  <input type="date" className={inp} /></div>
+                <div className="space-y-1"><label className={lbl}>Último Curso de Tiro</label>
+                  <input type="date" className={inp} /></div>
+                <div className="space-y-1"><label className={lbl}>Venc. Reciclagem</label>
+                  <input type="date" className={inp} /></div>
+                <div className="col-span-2 space-y-1"><label className={lbl}>Tipo de Armamento</label>
+                  <select className={inp}>
+                    <option value="">Selecione...</option>
+                    <option>Revólver .38</option><option>Pistola 9mm</option><option>Pistola .40</option><option>Não armado</option>
+                  </select></div>
+              </div>
+              <p className="text-xs text-slate-400">* Estes dados também ficam registrados no módulo DP → Medicina e no controle de armamento.</p>
+            </div>
+          )}
+
+          {/* ETAPA Benefícios (última antes de salvar) */}
+          {((etapa === 3 && !isVigilante) || (etapa === 4 && isVigilante)) && (
+            <div className="space-y-3">
+              <div className="rounded-xl border border-purple-100 bg-purple-50 px-4 py-2.5">
+                <p className="text-xs font-bold text-purple-700">Benefícios</p>
+              </div>
+              <div className="grid grid-cols-1 gap-2">
+                {[
+                  { campo:'vale_transporte', label:'Vale Transporte',     desc:'Desconto proporcional ao uso' },
+                  { campo:'vale_refeicao',   label:'Vale Refeição',       desc:'R$ 22/dia útil trabalhado' },
+                  { campo:'plano_saude',     label:'Plano de Saúde',      desc:'Coparticipação do funcionário' },
+                  { campo:'seguro_vida',     label:'Seguro de Vida',      desc:'Cobertura por acidente/morte' },
+                ].map(b => (
+                  <label key={b.campo} className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 transition">
+                    <input type="checkbox" defaultChecked={b.campo==='vale_transporte'||b.campo==='vale_refeicao'}
+                      className="w-4 h-4 rounded text-emerald-600 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-semibold text-slate-800">{b.label}</p>
+                      <p className="text-xs text-slate-400">{b.desc}</p>
+                    </div>
+                  </label>
+                ))}
               </div>
             </div>
           )}
 
           {erro && <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{erro}</div>}
+        </div>
 
-          <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
-            <button type="button" onClick={onClose} style={{ cursor: 'pointer' }}
-              className="px-5 py-2.5 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-100 transition">
-              Cancelar
+        {/* Footer */}
+        <div className="flex justify-between items-center px-6 py-4 border-t border-slate-100 flex-shrink-0">
+          <button onClick={()=>{ if(etapa>1) setEtapa(e=>e-1); else onClose(); }} style={{ cursor: 'pointer' }}
+            className="px-5 py-2.5 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-100 transition">
+            {etapa === 1 ? 'Cancelar' : '← Voltar'}
+          </button>
+          <span className="text-xs text-slate-400">{etapa} / {totalEtapas}</span>
+          {etapa < totalEtapas ? (
+            <button onClick={()=>{ setErro(null); setEtapa(e=>e+1); }} style={{ cursor: 'pointer' }}
+              className="px-5 py-2.5 rounded-xl text-sm font-bold bg-slate-900 text-white hover:bg-slate-700 transition">
+              Próximo →
             </button>
-            <button type="button" onClick={salvar} disabled={salvando} style={{ cursor: 'pointer' }}
-              className="px-5 py-2.5 rounded-xl text-sm font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition disabled:opacity-60 flex items-center gap-2">
+          ) : (
+            <button onClick={salvar} disabled={salvando} style={{ cursor: 'pointer' }}
+              className="px-5 py-2.5 rounded-xl text-sm font-bold bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60 flex items-center gap-2">
               {salvando ? 'Salvando...' : inicial ? 'Salvar Alterações' : `Adicionar ${modelo.label}`}
             </button>
-          </div>
+          )}
         </div>
       </div>
     </div>
   );
 }
+
 
 // ─── Linha da tabela ─────────────────────────────────────────────────────────
 
