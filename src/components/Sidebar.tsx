@@ -30,7 +30,6 @@ const ALL_MODULES: SidebarGroup[] = [
       { id: "operacoes",      label: "Centro de Operações", route: "/operacoes",      icon: "Shield" },
       { id: "rondas",         label: "Rondas",              route: "/rondas",         icon: "Route" },
       { id: "ocorrencias",    label: "Ocorrências",         route: "/ocorrencias",    icon: "AlertTriangle" },
-      { id: "escalas",        label: "Escalas",             route: "/escalas",        icon: "CalendarClock" },
       { id: "vigilantes",     label: "Vigilantes",          route: "/vigilantes",     icon: "Users" },
       { id: "postos",         label: "Postos",              route: "/postos",         icon: "MapPinned" },
       { id: "frota",          label: "Frota",               route: "/frota",          icon: "Car" },
@@ -62,13 +61,14 @@ const ALL_MODULES: SidebarGroup[] = [
       { id: "open-finance",  label: "Open Finance",      route: "/financeiro/open-finance",  icon: "Landmark" },
     ],
   },
-  {
-    category: "RH & DP",
-    items: [
-      { id: "folha-pagamento", label: "Folha de Pagamento",  route: "/folha-pagamento", icon: "Receipt" },
-      { id: "rh-dp",           label: "Departamento Pessoal",route: "/rh/dp",           icon: "ClipboardList" },
-    ],
-  },
+  // RH & DP pausado — reativar após alinhamento com o DP na segunda
+  // {
+  //   category: "RH & DP",
+  //   items: [
+  //     { id: "folha-pagamento", label: "Folha de Pagamento",  route: "/folha-pagamento", icon: "Receipt" },
+  //     { id: "rh-dp",           label: "Departamento Pessoal",route: "/rh/dp",           icon: "ClipboardList" },
+  //   ],
+  // },
   {
     category: "INTELIGÊNCIA",
     items: [
@@ -89,7 +89,7 @@ const ALL_MODULES: SidebarGroup[] = [
 // Módulos que SEMPRE aparecem independente de toggles ou role
 const SEMPRE_VISIVEIS = [
   "dashboard", "configuracoes",
-  "escalas", "rentabilidade", "orcamento", "folha-pagamento", "notas-fiscais", "open-finance", "rh-dp",
+  "rentabilidade", "orcamento", "notas-fiscais", "open-finance",
 ];
 
 // Módulos que o perfil financeiro pode ver
@@ -98,7 +98,7 @@ const MODULOS_FINANCEIRO = [
   "financeiro", "lancamentos", "receber", "pagar",
   "inadimplencia", "cobranca", "caixa-bancos", "fluxo-caixa",
   "dre", "relatorios-fin",
-  "contratos", "notas-fiscais", "rentabilidade", "orcamento", "folha-pagamento",
+  "contratos", "notas-fiscais", "rentabilidade", "orcamento",
 ];
 
 const EMAIL_ADMIN_MASTER = "mellaurj@gmail.com";
