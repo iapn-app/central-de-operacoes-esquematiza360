@@ -53,20 +53,20 @@ const ALL_MODULES: SidebarGroup[] = [
     ],
   },
   {
-    category: "CONTRATOS & RH",
+    category: "CONTRATOS & FINANCEIRO",
     items: [
-      { id: "contratos",       label: "Contratos",           route: "/contratos",                icon: "FileSignature" },
-      { id: "notas-fiscais",   label: "Notas Fiscais",       route: "/notas-fiscais",            icon: "FileText" },
-      { id: "rentabilidade",   label: "Rentabilidade",       route: "/financeiro/rentabilidade", icon: "TrendingUp" },
-      { id: "orcamento",       label: "Orç. vs Realizado",   route: "/financeiro/orcamento",     icon: "Target" },
-      { id: "folha-pagamento", label: "Folha de Pagamento",  route: "/folha-pagamento",          icon: "Receipt" },
-      { id: "open-finance",    label: "Open Finance",         route: "/financeiro/open-finance",  icon: "Landmark" },
+      { id: "contratos",     label: "Contratos",         route: "/contratos",                icon: "FileSignature" },
+      { id: "notas-fiscais", label: "Notas Fiscais",     route: "/notas-fiscais",            icon: "FileText" },
+      { id: "rentabilidade", label: "Rentabilidade",     route: "/financeiro/rentabilidade", icon: "TrendingUp" },
+      { id: "orcamento",     label: "Orç. vs Realizado", route: "/financeiro/orcamento",     icon: "Target" },
+      { id: "open-finance",  label: "Open Finance",      route: "/financeiro/open-finance",  icon: "Landmark" },
     ],
   },
   {
-    category: "RH",
+    category: "RH & DP",
     items: [
-      { id: "rh-dp",         label: "Departamento Pessoal", route: "/rh/dp",          icon: "ClipboardList" },
+      { id: "folha-pagamento", label: "Folha de Pagamento",  route: "/folha-pagamento", icon: "Receipt" },
+      { id: "rh-dp",           label: "Departamento Pessoal",route: "/rh/dp",           icon: "ClipboardList" },
     ],
   },
   {
