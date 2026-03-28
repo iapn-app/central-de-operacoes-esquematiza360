@@ -64,6 +64,12 @@ const ALL_MODULES: SidebarGroup[] = [
     ],
   },
   {
+    category: "RH",
+    items: [
+      { id: "rh-dp",         label: "Departamento Pessoal", route: "/rh/dp",          icon: "ClipboardList" },
+    ],
+  },
+  {
     category: "INTELIGÊNCIA",
     items: [
       { id: "inteligencia-operacional", label: "Inteligência Operacional", route: "/inteligencia-operacional", icon: "Brain" },
@@ -83,7 +89,7 @@ const ALL_MODULES: SidebarGroup[] = [
 // Módulos que SEMPRE aparecem independente de toggles ou role
 const SEMPRE_VISIVEIS = [
   "dashboard", "configuracoes",
-  "escalas", "rentabilidade", "orcamento", "folha-pagamento", "notas-fiscais", "open-finance",
+  "escalas", "rentabilidade", "orcamento", "folha-pagamento", "notas-fiscais", "open-finance", "rh-dp",
 ];
 
 // Módulos que o perfil financeiro pode ver
