@@ -39,6 +39,7 @@ import { NotasFiscais } from "./pages/NotasFiscais";
 import { OrcamentoRealizado } from "./pages/financeiro/OrcamentoRealizado";
 import { RentabilidadeContratos } from "./pages/financeiro/RentabilidadeContratos";
 import { OpenFinance } from "./pages/financeiro/OpenFinance";
+import { DepartamentoPessoal } from "./pages/DepartamentoPessoal";
 import { Configuracoes } from "./pages/Configuracoes";
 
 function LoginGuard() {
@@ -100,6 +101,7 @@ function App() {
             <Route path="financeiro/orcamento" element={<OrcamentoRealizado />} />
             <Route path="financeiro/rentabilidade" element={<RentabilidadeContratos />} />
             <Route path="financeiro/open-finance" element={<OpenFinance />} />
+            <Route path="rh/dp" element={<DepartamentoPessoal />} />
             <Route path="configuracoes" element={<Configuracoes />} />
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
